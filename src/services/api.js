@@ -56,6 +56,18 @@ export const api = {
         if (!res.ok) throw new Error(`API Error: ${res.statusText}`);
         return res.json();
     },
+    delete: async (endpoint) => {
+        const res = await fetch(`${API_URL}${endpoint}`, {
+            method: 'DELETE',
+            headers: getHeaders(),
+        });
+        if (res.status === 401) {
+            localStorage.removeItem('token');
+            window.location.reload();
+        }
+        if (!res.ok) throw new Error(`API Error: ${res.statusText}`);
+        return true;
+    },
     // Auth helpers
     login: async (username, password) => {
         const res = await fetch(`${API_URL}/login/`, {

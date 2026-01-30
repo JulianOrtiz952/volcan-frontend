@@ -41,6 +41,26 @@ const TaskItem = ({ task, onUpdate }) => {
         } catch (e) { console.error("Subtask toggle failed", e); }
     };
 
+    const deleteTask = async () => {
+        if (!window.confirm("¿Eliminar esta tarea?")) return;
+        try {
+            await api.delete(`/tasks/${task.id}/`);
+            onUpdate();
+        } catch (e) {
+            console.error("Failed to delete task", e);
+        }
+    };
+
+    const deleteSubtask = async (subId) => {
+        if (!window.confirm("¿Eliminar esta subtarea?")) return;
+        try {
+            await api.delete(`/subtasks/${subId}/`);
+            onUpdate();
+        } catch (e) {
+            console.error("Failed to delete subtask", e);
+        }
+    };
+
     const handleAddSubtask = async (e) => {
         e.preventDefault();
         if (!subtaskTitle.trim()) return;
@@ -53,25 +73,36 @@ const TaskItem = ({ task, onUpdate }) => {
     };
 
     return (
-        <div className={`mb-6 p-4 rounded-lg transition-all
+        <div className={`mb-6 p-4 rounded-lg transition-all group
             ${theme === 'cyberpunk' ? 'bg-cyber-dark/30 border border-cyber-muted/30' : 'bg-white/80 border border-paper-line/50 shadow-sm'}
         `}>
             <div className="flex items-start justify-between mb-2">
-                <label className="flex items-center cursor-pointer select-none">
-                    <input
-                        type="checkbox"
-                        checked={task.completed}
-                        onChange={toggleComplete}
-                        className={`mr-3 w-5 h-5 appearance-none border transition-all cursor-pointer flex-shrink-0
-                          ${task.completed ? 'bg-current border-transparent' : 'bg-transparent'}
-                          ${theme === 'cyberpunk' ? 'border-cyber-primary checked:bg-cyber-primary text-cyber-black' : 'border-paper-ink checked:bg-paper-red text-paper-bg rounded-md'}
+                <div className="flex items-center flex-1">
+                    <label className="flex items-center cursor-pointer select-none flex-1">
+                        <input
+                            type="checkbox"
+                            checked={task.completed}
+                            onChange={toggleComplete}
+                            className={`mr-3 w-5 h-5 appearance-none border transition-all cursor-pointer flex-shrink-0
+                              ${task.completed ? 'bg-current border-transparent' : 'bg-transparent'}
+                              ${theme === 'cyberpunk' ? 'border-cyber-primary checked:bg-cyber-primary text-cyber-black' : 'border-paper-ink checked:bg-paper-red text-paper-bg rounded-md'}
+                            `}
+                        />
+                        <span className={`font-bold text-lg ${task.completed ? 'line-through opacity-50' : ''}`}>
+                            {task.title}
+                        </span>
+                    </label>
+                    <button
+                        onClick={deleteTask}
+                        className={`ml-2 opacity-0 group-hover:opacity-100 transition-opacity p-1
+                            ${theme === 'cyberpunk' ? 'text-cyber-secondary hover:text-white' : 'text-paper-ink hover:text-paper-red'}
                         `}
-                    />
-                    <span className={`font-bold text-lg ${task.completed ? 'line-through opacity-50' : ''}`}>
-                        {task.title}
-                    </span>
-                </label>
-                <div className={`text-xs font-mono px-2 py-1 rounded
+                        title="Eliminar tarea"
+                    >
+                        ✕
+                    </button>
+                </div>
+                <div className={`text-xs font-mono px-2 py-1 rounded ml-2
                     ${theme === 'cyberpunk' ? 'bg-cyber-dark text-cyber-accent' : 'bg-paper-mark text-paper-ink'}
                 `}>
                     {Math.round(task.progress)}%
@@ -84,7 +115,29 @@ const TaskItem = ({ task, onUpdate }) => {
                 {task.subtasks && task.subtasks.length > 0 && (
                     <div className="mt-4 space-y-2 border-l-2 pl-4 py-2" style={{ borderColor: theme === 'cyberpunk' ? 'rgba(0,204,255,0.2)' : 'rgba(0,0,0,0.1)' }}>
                         {task.subtasks.map(sub => (
-                            <SubtaskItem key={sub.id} subtask={sub} onToggle={toggleSubtask} theme={theme} />
+                            <div key={sub.id} className="flex items-center justify-between group/sub">
+                                <div
+                                    className="flex items-center text-sm opacity-80 cursor-pointer hover:opacity-100 transition-opacity py-1 flex-1"
+                                    onClick={() => toggleSubtask(sub.id)}
+                                >
+                                    <div className={`w-4 h-4 mr-2 border flex items-center justify-center transition-all flex-shrink-0
+                                        ${sub.completed ? 'bg-current' : 'transparent'}
+                                        ${theme === 'cyberpunk' ? 'border-cyber-secondary text-cyber-secondary' : 'border-paper-ink text-paper-ink rounded-sm'}
+                                    `}>
+                                        {sub.completed && '✓'}
+                                    </div>
+                                    <span className={`${sub.completed ? 'line-through opacity-50' : ''} break-words`}>{sub.title}</span>
+                                </div>
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); deleteSubtask(sub.id); }}
+                                    className={`opacity-0 group-hover/sub:opacity-100 transition-opacity p-1
+                                        ${theme === 'cyberpunk' ? 'text-cyber-secondary hover:text-white' : 'text-paper-ink hover:text-paper-red'}
+                                    `}
+                                    title="Eliminar subtarea"
+                                >
+                                    ✕
+                                </button>
+                            </div>
                         ))}
                     </div>
                 )}
