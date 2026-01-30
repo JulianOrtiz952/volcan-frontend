@@ -338,7 +338,7 @@ const ProjectList = ({ view }) => {
                 description: '',
             });
             setNewTaskTitle('');
-            await fetchTasks(selectedProject.id); // Refresh tasks
+            await fetchTasks(selectedProject.id, true); // Refresh tasks silently
             fetchProjects(true); // Refresh project progress silently
         } catch (e) { console.error(e); }
     };
