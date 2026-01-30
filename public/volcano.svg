@@ -1,21 +1,27 @@
 <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-<!-- Ash/Smoke Cloud -->
-<path d="M42 16C45 16 48 14 48 11C48 8 45 6 42 6C40 6 38.5 7 37.5 8C36 5 33 4 30 5C27 6 26 9 27 12C24 12 22 14 22 17C22 20 24.5 22 27.5 22C28 22 30 21.5 30 21.5" stroke="#9E9E9E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="#BDBDBD" fill-opacity="0.5"/>
-<path d="M25 24L10 58H54L39 24" fill="#4E342E" stroke="#3E2723" stroke-width="2" stroke-linejoin="round"/>
-<!-- Lava Flow -->
-<path d="M32 24 L28 32 Q32 36 36 32 Z" fill="#FF5722"/>
-<path d="M32 24 L30 40 Q32 45 34 40 Z" fill="#FF5722"/>
-<path d="M32 24 L35 30" stroke="#FF5722" stroke-width="2"/>
-<!-- Eruption -->
-<path d="M32 24 L30 14" stroke="#D84315" stroke-width="3" stroke-linecap="round"/>
-<path d="M32 24 L36 10" stroke="#D84315" stroke-width="3" stroke-linecap="round"/>
-<path d="M32 24 L25 12" stroke="#D84315" stroke-width="3" stroke-linecap="round"/>
-<!-- Sparks -->
-<circle cx="28" cy="8" r="1.5" fill="#FFC107"/>
-<circle cx="38" cy="6" r="1.5" fill="#FFC107"/>
-<circle cx="22" cy="14" r="1" fill="#FF5722"/>
-<circle cx="44" cy="12" r="1" fill="#FF5722"/>
-<!-- Mountain Texture -->
-<path d="M18 40 L24 40 L20 48 Z" fill="#3E2723" fill-opacity="0.5"/>
-<path d="M46 40 L40 40 L44 48 Z" fill="#3E2723" fill-opacity="0.5"/>
+<!-- Smoke Column - Larger and lighter gray for visibility -->
+<path d="M42 16C46 16 50 13 50 9C50 5 46 2 42 2C39 2 37 4 36 6C34 3 30 2 26 4C22 6 22 10 24 13C21 13 18 16 18 20C18 24 22 26 26 26C27 26 30 25 30 25" stroke="#B0BEC5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="#CFD8DC" fill-opacity="0.9"/>
+
+<!-- Mountain Body - Ash Color (Dark Gray) -->
+<path d="M25 24L6 58H58L42 24" fill="#424242" stroke="#212121" stroke-width="2" stroke-linejoin="round"/>
+
+<!-- Lava Flow - Much brighter and wider -->
+<path d="M33.5 24 L28 34 Q32 40 38 34 Z" fill="#FF5722"/>
+<path d="M33.5 24 L30 46 Q33.5 52 37 46 Z" fill="#FF3D00"/>
+<path d="M33.5 24 L38 32" stroke="#FF5722" stroke-width="3" stroke-linecap="round"/>
+
+<!-- Eruption/Explosion - High contrast -->
+<path d="M33.5 24 L28 10" stroke="#FF3D00" stroke-width="4" stroke-linecap="round"/>
+<path d="M33.5 24 L40 6" stroke="#FF3D00" stroke-width="4" stroke-linecap="round"/>
+<path d="M33.5 24 L22 14" stroke="#FF3D00" stroke-width="4" stroke-linecap="round"/>
+
+<!-- Sparks/Rocks - Bright Orange/Yellow -->
+<circle cx="26" cy="6" r="2.5" fill="#FFEA00"/>
+<circle cx="44" cy="4" r="2.5" fill="#FFEA00"/>
+<circle cx="18" cy="16" r="2" fill="#FF9100"/>
+<circle cx="48" cy="14" r="2" fill="#FF9100"/>
+
+<!-- Texture/Details on Mountain -->
+<path d="M16 44 L22 44 L18 52 Z" fill="#616161" fill-opacity="0.8"/>
+<path d="M50 44 L44 44 L48 52 Z" fill="#616161" fill-opacity="0.8"/>
 </svg>
