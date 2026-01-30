@@ -1,8 +1,21 @@
 <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M4.5 58L22 18H42L59.5 58H4.5Z" fill="#5D4037" stroke="#3E2723" stroke-width="2" stroke-linejoin="round"/>
-<path d="M22 18L26 28L32 24L38 28L42 18H22Z" fill="white" stroke="white" stroke-width="2" stroke-linejoin="round"/>
-<path d="M32 18V8" stroke="#E65100" stroke-width="3" stroke-linecap="round"/>
-<circle cx="32" cy="5" r="2" fill="#FF9800"/>
-<circle cx="26" cy="10" r="1.5" fill="#FF5722"/>
-<circle cx="38" cy="10" r="1.5" fill="#FF5722"/>
+<!-- Ash/Smoke Cloud -->
+<path d="M42 16C45 16 48 14 48 11C48 8 45 6 42 6C40 6 38.5 7 37.5 8C36 5 33 4 30 5C27 6 26 9 27 12C24 12 22 14 22 17C22 20 24.5 22 27.5 22C28 22 30 21.5 30 21.5" stroke="#9E9E9E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="#BDBDBD" fill-opacity="0.5"/>
+<path d="M25 24L10 58H54L39 24" fill="#4E342E" stroke="#3E2723" stroke-width="2" stroke-linejoin="round"/>
+<!-- Lava Flow -->
+<path d="M32 24 L28 32 Q32 36 36 32 Z" fill="#FF5722"/>
+<path d="M32 24 L30 40 Q32 45 34 40 Z" fill="#FF5722"/>
+<path d="M32 24 L35 30" stroke="#FF5722" stroke-width="2"/>
+<!-- Eruption -->
+<path d="M32 24 L30 14" stroke="#D84315" stroke-width="3" stroke-linecap="round"/>
+<path d="M32 24 L36 10" stroke="#D84315" stroke-width="3" stroke-linecap="round"/>
+<path d="M32 24 L25 12" stroke="#D84315" stroke-width="3" stroke-linecap="round"/>
+<!-- Sparks -->
+<circle cx="28" cy="8" r="1.5" fill="#FFC107"/>
+<circle cx="38" cy="6" r="1.5" fill="#FFC107"/>
+<circle cx="22" cy="14" r="1" fill="#FF5722"/>
+<circle cx="44" cy="12" r="1" fill="#FF5722"/>
+<!-- Mountain Texture -->
+<path d="M18 40 L24 40 L20 48 Z" fill="#3E2723" fill-opacity="0.5"/>
+<path d="M46 40 L40 40 L44 48 Z" fill="#3E2723" fill-opacity="0.5"/>
 </svg>
