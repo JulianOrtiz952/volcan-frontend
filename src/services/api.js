@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:8000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 // Simple Basic Auth for development (User: admin, Pass: admin)
 // In a real app, you'd use JWT or Session cookies
