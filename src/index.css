@@ -1,0 +1,98 @@
+@import "tailwindcss";
+@plugin "tailwindcss-animate";
+@config "../tailwind.config.js";
+
+@layer base {
+  :root {
+    /* Default to Cyberpunk logic for variable mapping if needed, 
+       but we will use utility classes mostly. */
+  }
+
+  body {
+    @apply transition-colors duration-300;
+  }
+}
+
+/* Sketchy / Hand-drawn Effects */
+.sketchy-border {
+  border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  border-style: solid;
+}
+
+.sketchy-box {
+  border-radius: 5px 25px 5px 25px / 25px 5px 25px 5px;
+}
+
+.sketchy-input {
+  border-radius: 20px 5px 20px 5px / 5px 20px 5px 20px;
+  border: 2px solid #2b2b2b;
+}
+
+/* Scribble text underline effect */
+.scribble-underline {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 10' preserveAspectRatio='none'%3E%3Cpath d='M0,5 C50,15 150,-5 200,5' stroke='%23ff4444' stroke-width='3' fill='none' /%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: bottom;
+  background-size: 100% 10px;
+  padding-bottom: 5px;
+}
+
+/* Cyberpunk Scrollbar */
+.cyber-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.cyber-scrollbar::-webkit-scrollbar-track {
+  background: #0a0a0f;
+}
+
+.cyber-scrollbar::-webkit-scrollbar-thumb {
+  background: #ff0055;
+  border-radius: 4px;
+}
+
+/* Paper Scrollbar */
+.paper-scrollbar::-webkit-scrollbar {
+  width: 10px;
+}
+
+.paper-scrollbar::-webkit-scrollbar-track {
+  background: #fdfbf7;
+  border-left: 1px solid #a4b0be;
+}
+
+.paper-scrollbar::-webkit-scrollbar-thumb {
+  background: #2b2b2b;
+  border: 1px solid #fdfbf7;
+}
+
+/* Glitch Effect Animation for Cyberpunk */
+@keyframes glitch {
+  0% {
+    transform: translate(0)
+  }
+
+  20% {
+    transform: translate(-2px, 2px)
+  }
+
+  40% {
+    transform: translate(-2px, -2px)
+  }
+
+  60% {
+    transform: translate(2px, 2px)
+  }
+
+  80% {
+    transform: translate(2px, -2px)
+  }
+
+  100% {
+    transform: translate(0)
+  }
+}
+
+.glitch-hover:hover {
+  animation: glitch 0.2s cubic-bezier(.25, .46, .45, .94) both infinite;
+}
