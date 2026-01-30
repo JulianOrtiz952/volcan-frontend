@@ -40,13 +40,27 @@ const Navbar = ({ currentView, setView }) => {
             </div>
 
             {/* Theme Toggle */}
-            <button
-                onClick={toggleTheme}
-                className="text-2xl hover:rotate-12 transition-transform"
-                title="Toggle Theme"
-            >
-                {theme === 'cyberpunk' ? '🌙' : '✏️'}
-            </button>
+            <div className="flex gap-4 items-center">
+                <button
+                    onClick={toggleTheme}
+                    className="text-2xl hover:rotate-12 transition-transform"
+                    title="Toggle Theme"
+                >
+                    {theme === 'cyberpunk' ? '🌙' : '✏️'}
+                </button>
+
+                <button
+                    onClick={() => {
+                        localStorage.removeItem('token');
+                        window.location.reload();
+                    }}
+                    className={`text-xs font-bold px-3 py-1 border transition-all
+                        ${theme === 'cyberpunk' ? 'border-red-500 text-red-500 hover:bg-red-500 hover:text-black' : 'border-paper-red text-paper-red hover:bg-paper-red hover:text-white'}
+                    `}
+                >
+                    LOGOUT
+                </button>
+            </div>
         </nav>
     );
 };

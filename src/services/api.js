@@ -8,10 +8,9 @@ const getHeaders = () => {
     };
     const token = localStorage.getItem('token');
     if (token) {
-        headers['Authorization'] = `Topken ${token}`;
+        headers['Authorization'] = `Token ${token}`;
     } else {
-        // Fallback for demo: Basic Auth for admin/admin
-        headers['Authorization'] = 'Basic ' + btoa('admin:admin');
+        // No default auth
     }
     return headers;
 };
@@ -21,6 +20,10 @@ export const api = {
         const res = await fetch(`${API_URL}${endpoint}`, {
             headers: getHeaders(),
         });
+        if (res.status === 401) {
+            localStorage.removeItem('token');
+            window.location.reload();
+        }
         if (!res.ok) throw new Error(`API Error: ${res.statusText}`);
         return res.json();
     },
@@ -30,7 +33,14 @@ export const api = {
             headers: getHeaders(),
             body: JSON.stringify(data),
         });
-        if (!res.ok) throw new Error(`API Error: ${res.statusText}`);
+        if (res.status === 401) {
+            localStorage.removeItem('token');
+            window.location.reload();
+        }
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.non_field_errors || errData.detail || `API Error: ${res.statusText}`);
+        }
         return res.json();
     },
     patch: async (endpoint, data) => {
@@ -39,7 +49,41 @@ export const api = {
             headers: getHeaders(),
             body: JSON.stringify(data),
         });
+        if (res.status === 401) {
+            localStorage.removeItem('token');
+            window.location.reload();
+        }
         if (!res.ok) throw new Error(`API Error: ${res.statusText}`);
         return res.json();
+    },
+    // Auth helpers
+    login: async (username, password) => {
+        const res = await fetch(`${API_URL}/login/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password }),
+        });
+        if (!res.ok) throw new Error('Invalid credentials');
+        const data = await res.json();
+        localStorage.setItem('token', data.token);
+        return data;
+    },
+    register: async (username, password) => {
+        const res = await fetch(`${API_URL}/register/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password }),
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.username?.[0] || 'Registration failed');
+        }
+        const data = await res.json();
+        localStorage.setItem('token', data.token);
+        return data;
+    },
+    logout: () => {
+        localStorage.removeItem('token');
+        window.location.reload();
     }
 };
