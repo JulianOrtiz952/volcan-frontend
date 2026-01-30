@@ -20,25 +20,17 @@ const SubtaskItem = ({ subtask, onToggle, theme }) => (
     </div>
 );
 
-const TaskItem = ({ task, onUpdate }) => {
+const TaskItem = ({ task, onUpdate, onToggleTask, onToggleSubtask }) => {
     const { theme } = useTheme();
     const [isAddingSubtask, setIsAddingSubtask] = useState(false);
     const [subtaskTitle, setSubtaskTitle] = useState('');
 
     const toggleComplete = async () => {
-        try {
-            await api.patch(`/tasks/${task.id}/`, { completed: !task.completed });
-            onUpdate();
-        } catch (e) { console.error(e); }
+        onToggleTask(task.id, task.completed);
     };
 
     const toggleSubtask = async (subId) => {
-        const sub = task.subtasks.find(s => s.id === subId);
-        if (!sub) return;
-        try {
-            await api.patch(`/subtasks/${subId}/`, { completed: !sub.completed });
-            onUpdate();
-        } catch (e) { console.error("Subtask toggle failed", e); }
+        onToggleSubtask(task.id, subId, task.subtasks.find(s => s.id === subId).completed);
     };
 
     const deleteTask = async () => {
@@ -263,7 +255,7 @@ const ProjectList = ({ view }) => {
     // New Inputs
     const [newTaskTitle, setNewTaskTitle] = useState('');
 
-    const fetchProjects = async () => {
+    const fetchProjects = async (silent = false) => {
         try {
             const endpoint = view === 'community' ? '/projects/community/' : '/projects/';
             const data = await api.get(endpoint);
@@ -271,13 +263,13 @@ const ProjectList = ({ view }) => {
         } catch (err) { console.error(err); }
     };
 
-    const fetchTasks = async (projectId) => {
-        setLoadingTasks(true);
+    const fetchTasks = async (projectId, silent = false) => {
+        if (!silent) setLoadingTasks(true);
         try {
             const data = await api.get(`/tasks/?project=${projectId}`);
             setTasks(data);
         } catch (e) { console.error(e); }
-        finally { setLoadingTasks(false); }
+        finally { if (!silent) setLoadingTasks(false); }
     };
 
     useEffect(() => {
@@ -291,6 +283,50 @@ const ProjectList = ({ view }) => {
         }
     }, [selectedProject]);
 
+    const handleToggleTask = async (taskId, currentStatus) => {
+        // Optimistic update
+        const previousTasks = [...tasks];
+        setTasks(tasks.map(t =>
+            t.id === taskId ? { ...t, completed: !currentStatus, progress: !currentStatus ? 100 : 0 } : t
+        ));
+
+        try {
+            await api.patch(`/tasks/${taskId}/`, { completed: !currentStatus });
+            // Refresh silently to sync with backend recalculated values
+            await fetchTasks(selectedProject.id, true);
+            fetchProjects(true);
+        } catch (e) {
+            console.error(e);
+            setTasks(previousTasks); // Rollback
+        }
+    };
+
+    const handleToggleSubtask = async (taskId, subId, currentStatus) => {
+        // Optimistic update
+        const previousTasks = [...tasks];
+        setTasks(tasks.map(t => {
+            if (t.id === taskId) {
+                const newSubtasks = t.subtasks.map(s =>
+                    s.id === subId ? { ...s, completed: !currentStatus } : s
+                );
+                // Simple local progress calc
+                const completedCount = newSubtasks.filter(s => s.completed).length;
+                const newProgress = (completedCount / newSubtasks.length) * 100;
+                return { ...t, subtasks: newSubtasks, progress: newProgress };
+            }
+            return t;
+        }));
+
+        try {
+            await api.patch(`/subtasks/${subId}/`, { completed: !currentStatus });
+            await fetchTasks(selectedProject.id, true);
+            fetchProjects(true);
+        } catch (e) {
+            console.error(e);
+            setTasks(previousTasks); // Rollback
+        }
+    };
+
     const handleCreateTask = async (e) => {
         e.preventDefault();
         if (!newTaskTitle.trim() || !selectedProject) return;
@@ -303,7 +339,7 @@ const ProjectList = ({ view }) => {
             });
             setNewTaskTitle('');
             await fetchTasks(selectedProject.id); // Refresh tasks
-            fetchProjects(); // Refresh project progress
+            fetchProjects(true); // Refresh project progress silently
         } catch (e) { console.error(e); }
     };
 
@@ -422,7 +458,9 @@ const ProjectList = ({ view }) => {
                                         <TaskItem
                                             key={task.id}
                                             task={task}
-                                            onUpdate={() => { fetchTasks(selectedProject.id); fetchProjects(); }}
+                                            onUpdate={() => { fetchTasks(selectedProject.id, true); fetchProjects(true); }}
+                                            onToggleTask={handleToggleTask}
+                                            onToggleSubtask={handleToggleSubtask}
                                         />
                                     ))}
 

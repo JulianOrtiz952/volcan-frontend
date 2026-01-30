@@ -3,18 +3,12 @@ import { useTheme } from '../context/ThemeContext';
 import ProgressBar from './ProgressBar';
 import { api } from '../services/api';
 
-const TaskItem = ({ task, onUpdate }) => {
+const TaskItem = ({ task, onUpdate, onToggle }) => {
     const { theme } = useTheme();
     const hasSubtasks = task.subtasks && task.subtasks.length > 0;
 
     const toggleComplete = async () => {
-        try {
-            const newStatus = !task.completed;
-            await api.patch(`/tasks/${task.id}/`, { completed: newStatus });
-            onUpdate();
-        } catch (e) {
-            console.error("Failed to update task", e);
-        }
+        onToggle(task.id, task.completed);
     };
 
     const deleteTask = async () => {
@@ -96,7 +90,6 @@ const TaskItem = ({ task, onUpdate }) => {
                                 </button>
                             </div>
                         ))}
-                        {/* Subtask adding placeholder */}
                     </div>
                 </div>
             )}
@@ -109,20 +102,36 @@ const TaskModal = ({ project, onClose }) => {
     const [tasks, setTasks] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    const fetchTasks = async () => {
+    const fetchTasks = async (silent = false) => {
+        if (!silent) setLoading(true);
         try {
             const data = await api.get(`/tasks/?project=${project.id}`);
             setTasks(data);
         } catch (error) {
             console.error(error);
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     };
 
     useEffect(() => {
         fetchTasks();
     }, [project.id]);
+
+    const handleToggleTask = async (taskId, currentStatus) => {
+        const previousTasks = [...tasks];
+        setTasks(tasks.map(t =>
+            t.id === taskId ? { ...t, completed: !currentStatus, progress: !currentStatus ? 100 : 0 } : t
+        ));
+
+        try {
+            await api.patch(`/tasks/${taskId}/`, { completed: !currentStatus });
+            await fetchTasks(true);
+        } catch (e) {
+            console.error(e);
+            setTasks(previousTasks);
+        }
+    };
 
     if (!project) return null;
 
@@ -144,7 +153,12 @@ const TaskModal = ({ project, onClose }) => {
                 {/* List */}
                 <div className="space-y-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
                     {loading ? <p>Loading...</p> : tasks.map(t => (
-                        <TaskItem key={t.id} task={t} onUpdate={fetchTasks} />
+                        <TaskItem
+                            key={t.id}
+                            task={t}
+                            onUpdate={() => fetchTasks(true)}
+                            onToggle={handleToggleTask}
+                        />
                     ))}
                     {tasks.length === 0 && !loading && (
                         <p className="opacity-50 text-center text-sm">No tasks yet.</p>
