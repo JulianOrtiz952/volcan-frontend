@@ -75,8 +75,7 @@ export const TimerProvider = ({ children }) => {
             const restMinutes = Math.min(Math.max(Math.floor(duration / 5), 1), 15);
             setMode('rest');
             setTimeLeft(restMinutes * 60);
-            setIsActive(true);
-            setSessionStartTime(new Date());
+            setIsActive(false);
         } else {
             resetTimer();
         }

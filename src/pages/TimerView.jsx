@@ -167,7 +167,7 @@ const TimerView = () => {
                                         ${theme === 'cyberpunk' ? 'bg-cyber-primary text-black shadow-lg shadow-cyber-primary/40' : 'bg-paper-ink text-white sketchy-box'}
                                     `}
                                 >
-                                    Start
+                                    {mode === 'focus' ? 'Start Focus' : 'Start Rest'}
                                 </button>
                             ) : (
                                 <>
