@@ -3,12 +3,12 @@ import { useTheme } from '../context/ThemeContext';
 import { useUser } from '../context/UserContext';
 
 const AVATARS = [
-    'https://api.dicebear.com/7.x/pixel-art/svg?seed=Bear',
-    'https://api.dicebear.com/7.x/pixel-art/svg?seed=Cat',
-    'https://api.dicebear.com/7.x/pixel-art/svg?seed=Fox',
-    'https://api.dicebear.com/7.x/pixel-art/svg?seed=Dog',
-    'https://api.dicebear.com/7.x/pixel-art/svg?seed=Rabbit',
-    'https://api.dicebear.com/7.x/pixel-art/svg?seed=Panda'
+    'https://api.dicebear.com/7.x/fun-emoji/svg?seed=Lion',
+    'https://api.dicebear.com/7.x/fun-emoji/svg?seed=Tiger',
+    'https://api.dicebear.com/7.x/fun-emoji/svg?seed=Panda',
+    'https://api.dicebear.com/7.x/fun-emoji/svg?seed=Bear',
+    'https://api.dicebear.com/7.x/fun-emoji/svg?seed=Cat',
+    'https://api.dicebear.com/7.x/fun-emoji/svg?seed=Fox'
 ];
 
 const SettingsPage = () => {

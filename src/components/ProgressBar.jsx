@@ -7,7 +7,7 @@ const ProgressBar = ({ progress }) => {
     const getProgressColor = () => {
         if (progress < 25) return theme === 'cyberpunk' ? 'bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'bg-red-500';
         if (progress < 50) return theme === 'cyberpunk' ? 'bg-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.8)]' : 'bg-orange-500';
-        if (progress < 75) return theme === 'cyberpunk' ? 'bg-cyber-secondary shadow-[0_0_15px_rgba(0,204,255,0.8)]' : 'bg-blue-400';
+        if (progress < 75) return theme === 'cyberpunk' ? 'bg-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.8)]' : 'bg-yellow-400';
         return theme === 'cyberpunk' ? 'bg-cyber-accent shadow-[0_0_15px_#ccff00]' : 'bg-green-500';
     };
 
