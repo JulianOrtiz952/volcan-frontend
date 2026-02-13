@@ -51,6 +51,17 @@ const Navbar = ({ currentView, setView }) => {
                 >
                     COMMUNITY
                 </button>
+                <button
+                    onClick={() => setView('timer')}
+                    className={`px-4 py-2 font-bold transition-all
+            ${currentView === 'timer' ? 'scale-110' : 'opacity-70 hover:opacity-100'}
+            ${theme === 'cyberpunk' && currentView === 'timer' ? 'bg-cyber-accent text-cyber-black shadow-[0_0_10px_#f0f]' : ''}
+            ${theme === 'paper' ? 'sketchy-box border-2 border-paper-ink' : ''}
+            ${theme === 'paper' && currentView === 'timer' ? 'bg-yellow-100' : 'bg-transparent'}
+          `}
+                >
+                    TIMER
+                </button>
             </div>
 
             {/* Navigation and Settings */}

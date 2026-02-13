@@ -3,11 +3,12 @@ import Layout from './components/Layout'
 import ProjectList from './components/ProjectList'
 import AuthPage from './pages/AuthPage'
 import SettingsPage from './pages/SettingsPage'
+import TimerView from './pages/TimerView'
 
 import { useUser } from './context/UserContext'
 
 function App() {
-  const [currentView, setView] = useState('personal'); // 'personal', 'community', or 'settings'
+  const [currentView, setView] = useState('personal'); // 'personal', 'community', 'settings', or 'timer'
   const { user, login, loading } = useUser();
 
   if (loading && !user && localStorage.getItem('token')) {
@@ -24,6 +25,8 @@ function App() {
       <div className="h-full">
         {currentView === 'settings' ? (
           <SettingsPage />
+        ) : currentView === 'timer' ? (
+          <TimerView />
         ) : (
           <ProjectList view={currentView} />
         )}
