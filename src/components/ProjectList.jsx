@@ -395,11 +395,18 @@ const ProjectList = ({ view }) => {
                                 <h3 className={`font-bold truncate ${selectedProject ? 'text-sm' : 'text-xl'}`}>
                                     {project.name}
                                 </h3>
-                                {!selectedProject && (
-                                    <span className={`text-xs px-2 py-1 rounded ${theme === 'cyberpunk' ? 'bg-cyber-dark text-cyber-primary' : 'bg-paper-ink text-white'}`}>
-                                        {project.status}
-                                    </span>
-                                )}
+                                <div className="flex flex-col items-end">
+                                    {!selectedProject && view === 'community' && (
+                                        <span className={`text-[10px] opacity-60 mb-1 uppercase tracking-tighter ${theme === 'cyberpunk' ? 'text-cyber-secondary' : 'text-paper-ink'}`}>
+                                            BY: {project.display_name || project.user_name}
+                                        </span>
+                                    )}
+                                    {!selectedProject && (
+                                        <span className={`text-xs px-2 py-1 rounded ${theme === 'cyberpunk' ? 'bg-cyber-dark text-cyber-primary' : 'bg-paper-ink text-white'}`}>
+                                            {project.status}
+                                        </span>
+                                    )}
+                                </div>
                             </div>
 
                             <div className="mt-2">

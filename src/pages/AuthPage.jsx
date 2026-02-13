@@ -14,12 +14,13 @@ const AuthPage = ({ onLogin }) => {
         setLoading(true);
         setError(null);
         try {
+            let response;
             if (isLogin) {
-                await api.login(formData.username, formData.password);
+                response = await api.login(formData.username, formData.password);
             } else {
-                await api.register(formData.username, formData.password);
+                response = await api.register(formData.username, formData.password);
             }
-            onLogin(); // Notify App to refresh state
+            onLogin(response.token); // Pass token to UserContext via App.jsx
         } catch (err) {
             setError(err.message);
         } finally {

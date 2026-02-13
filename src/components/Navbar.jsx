@@ -1,8 +1,22 @@
 import React from 'react';
 import { useTheme } from '../context/ThemeContext';
+import { useUser } from '../context/UserContext';
+
+const AVATARS = [
+    'https://api.dicebear.com/7.x/pixel-art/svg?seed=Bear',
+    'https://api.dicebear.com/7.x/pixel-art/svg?seed=Cat',
+    'https://api.dicebear.com/7.x/pixel-art/svg?seed=Fox',
+    'https://api.dicebear.com/7.x/pixel-art/svg?seed=Dog',
+    'https://api.dicebear.com/7.x/pixel-art/svg?seed=Rabbit',
+    'https://api.dicebear.com/7.x/pixel-art/svg?seed=Panda'
+];
 
 const Navbar = ({ currentView, setView }) => {
-    const { theme, toggleTheme } = useTheme();
+    const { theme } = useTheme();
+    const { user, logout } = useUser();
+
+    const userAvatar = AVATARS[user?.profile?.avatar_index || 0];
+    const displayName = user?.profile?.display_name || user?.username || 'User';
 
     return (
         <nav className={`p-4 border-b-2 flex justify-between items-center z-50
@@ -39,21 +53,35 @@ const Navbar = ({ currentView, setView }) => {
                 </button>
             </div>
 
-            {/* Theme Toggle */}
+            {/* Navigation and Settings */}
             <div className="flex gap-4 items-center">
+                {/* User Info */}
+                <div className={`flex items-center gap-2 pr-4 border-r-2 ${theme === 'cyberpunk' ? 'border-cyber-primary/30' : 'border-paper-ink/30'}`}>
+                    <img
+                        src={userAvatar}
+                        alt="Avatar"
+                        className={`w-10 h-10 p-1 border-2 
+                            ${theme === 'cyberpunk' ? 'border-cyber-accent shadow-[0_0_8px_#f0f]' : 'border-paper-ink sketchy-border'}
+                        `}
+                    />
+                    <span className="font-bold text-sm hidden sm:block uppercase tracking-wider">
+                        {displayName}
+                    </span>
+                </div>
+
                 <button
-                    onClick={toggleTheme}
-                    className="text-2xl hover:rotate-12 transition-transform"
-                    title="Toggle Theme"
+                    onClick={() => setView('settings')}
+                    className={`px-3 py-1 font-bold text-xs transition-all
+                        ${currentView === 'settings' ? 'scale-110' : 'opacity-70 hover:opacity-100'}
+                        ${theme === 'cyberpunk' ? 'bg-cyber-primary text-cyber-black border-2 border-cyber-primary shadow-[0_0_10px_#ff0055]' : 'bg-paper-ink text-white sketchy-box'}
+                        ${theme === 'paper' && currentView === 'settings' ? 'bg-paper-highlight text-paper-ink' : ''}
+                    `}
                 >
-                    {theme === 'cyberpunk' ? '🌙' : '✏️'}
+                    SETTINGS
                 </button>
 
                 <button
-                    onClick={() => {
-                        localStorage.removeItem('token');
-                        window.location.reload();
-                    }}
+                    onClick={logout}
                     className={`text-xs font-bold px-3 py-1 border transition-all
                         ${theme === 'cyberpunk' ? 'border-red-500 text-red-500 hover:bg-red-500 hover:text-black' : 'border-paper-red text-paper-red hover:bg-paper-red hover:text-white'}
                     `}

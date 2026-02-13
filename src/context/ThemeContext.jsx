@@ -3,9 +3,15 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 const ThemeContext = createContext();
 
 export const ThemeProvider = ({ children }) => {
-    const [theme, setTheme] = useState('cyberpunk'); // 'cyberpunk' or 'paper'
+    // Initialize theme from localStorage or default to 'cyberpunk'
+    const [theme, setTheme] = useState(() => {
+        return localStorage.getItem('app-theme') || 'cyberpunk';
+    });
 
     useEffect(() => {
+        // Persist theme to localStorage
+        localStorage.setItem('app-theme', theme);
+
         // Apply theme-specific attributes to body or root
         const root = window.document.documentElement;
         root.classList.remove('theme-cyberpunk', 'theme-paper');

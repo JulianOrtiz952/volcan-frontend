@@ -4,21 +4,27 @@ import { useTheme } from '../context/ThemeContext';
 const ProgressBar = ({ progress }) => {
     const { theme } = useTheme();
 
+    const getProgressColor = () => {
+        if (progress < 25) return theme === 'cyberpunk' ? 'bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'bg-red-500';
+        if (progress < 50) return theme === 'cyberpunk' ? 'bg-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.8)]' : 'bg-orange-500';
+        if (progress < 75) return theme === 'cyberpunk' ? 'bg-cyber-secondary shadow-[0_0_15px_rgba(0,204,255,0.8)]' : 'bg-blue-400';
+        return theme === 'cyberpunk' ? 'bg-cyber-accent shadow-[0_0_15px_#ccff00]' : 'bg-green-500';
+    };
+
     return (
         <div className={`w-full h-6 mt-2 relative overflow-hidden
       ${theme === 'cyberpunk' ? 'bg-cyber-dark border border-cyber-muted' : 'bg-white text-black sketchy-box border-2 border-paper-ink'}
     `}>
             {/* Label inside or above? Let's put inside for cool factor */}
             <div className={`absolute inset-0 flex items-center justify-end px-2 z-10 font-bold text-xs
-        ${theme === 'cyberpunk' ? 'text-cyber-text shadow-black drop-shadow-md' : 'text-paper-ink'}
+        ${theme === 'cyberpunk' ? 'text-white shadow-black drop-shadow-md' : 'text-paper-ink'}
       `}>
-                Progreso: {Math.round(progress)}%
+                {Math.round(progress)}%
             </div>
 
             <div
-                className={`h-full transition-all duration-500 ease-out
-          ${theme === 'cyberpunk' ? 'bg-cyber-accent shadow-[0_0_15px_#ccff00]' : 'bg-paper-highlight opacity-80'}
-          ${theme === 'paper' ? 'bg-[url("https://www.transparenttextures.com/patterns/ scribbles-light.png")]' : ''} 
+                className={`h-full transition-all duration-500 ease-out ${getProgressColor()}
+          ${theme === 'paper' ? 'bg-[url("https://www.transparenttextures.com/patterns/scribbles-light.png")] opacity-80' : ''} 
         `}
                 style={{ width: `${progress}%` }}
             />

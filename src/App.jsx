@@ -2,20 +2,31 @@ import { useState, useEffect } from 'react'
 import Layout from './components/Layout'
 import ProjectList from './components/ProjectList'
 import AuthPage from './pages/AuthPage'
+import SettingsPage from './pages/SettingsPage'
+
+import { useUser } from './context/UserContext'
 
 function App() {
-  const [currentView, setView] = useState('personal'); // 'personal' or 'community'
-  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [currentView, setView] = useState('personal'); // 'personal', 'community', or 'settings'
+  const { user, login, loading } = useUser();
 
-  if (!token) {
-    return <AuthPage onLogin={() => setToken(localStorage.getItem('token'))} />;
+  if (loading && !user && localStorage.getItem('token')) {
+    return <div className="h-screen flex items-center justify-center font-bold">LOADING SESSION...</div>;
+  }
+
+  if (!user && !localStorage.getItem('token')) {
+    return <AuthPage onLogin={(token) => login(token)} />;
   }
 
   return (
     <Layout currentView={currentView} setView={setView}>
       {/* Content Area */}
       <div className="h-full">
-        <ProjectList view={currentView} />
+        {currentView === 'settings' ? (
+          <SettingsPage />
+        ) : (
+          <ProjectList view={currentView} />
+        )}
       </div>
     </Layout>
   )
