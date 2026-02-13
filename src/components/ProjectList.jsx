@@ -319,6 +319,118 @@ const ProjectModal = ({ onClose, onSave, theme, editingProject = null }) => {
     );
 };
 
+const ProjectCarousel = ({ projects, title, theme, isPersonal, onSelect, selectedProjectId }) => {
+    const scrollRef = useRef(null);
+    const [showLeft, setShowLeft] = useState(false);
+    const [showRight, setShowRight] = useState(true);
+
+    const handleScroll = () => {
+        if (scrollRef.current) {
+            const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+            setShowLeft(scrollLeft > 20);
+            setShowRight(scrollLeft < scrollWidth - clientWidth - 20);
+        }
+    };
+
+    const scroll = (direction) => {
+        if (scrollRef.current) {
+            const { clientWidth } = scrollRef.current;
+            const move = direction === 'left' ? -clientWidth * 0.8 : clientWidth * 0.8;
+            scrollRef.current.scrollBy({ left: move, behavior: 'smooth' });
+        }
+    };
+
+    useEffect(() => {
+        handleScroll();
+        window.addEventListener('resize', handleScroll);
+        return () => window.removeEventListener('resize', handleScroll);
+    }, [projects]);
+
+    const colors = theme === 'cyberpunk'
+        ? ['border-cyber-primary text-cyber-primary', 'border-cyber-secondary text-cyber-secondary', 'border-cyber-accent text-cyber-accent']
+        : ['border-paper-red text-paper-red', 'border-blue-500 text-blue-500', 'border-green-600 text-green-600', 'border-yellow-600 text-yellow-600'];
+
+    // Simple hash to pick a consistent color for the title
+    const colorIndex = Math.abs(title.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % colors.length;
+    const colorClass = colors[colorIndex];
+
+    return (
+        <div className="mb-10 group/carousel relative scale-100 transition-transform duration-300">
+            <h2 className={`text-xl font-bold mb-4 uppercase tracking-widest pl-3 border-l-4 transition-colors duration-500 ${colorClass}`}>
+                {title}
+            </h2>
+
+            <div className="relative">
+                {showLeft && (
+                    <button
+                        onClick={(e) => { e.stopPropagation(); scroll('left'); }}
+                        className={`absolute -left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full flex items-center justify-center shadow-xl transition-all duration-300 hover:scale-110 active:scale-95
+                            ${theme === 'cyberpunk' ? 'bg-cyber-primary text-black' : 'bg-paper-ink text-white sketchy-box'}
+                        `}
+                    >
+                        ←
+                    </button>
+                )}
+
+                {showRight && (
+                    <button
+                        onClick={(e) => { e.stopPropagation(); scroll('right'); }}
+                        className={`absolute -right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full flex items-center justify-center shadow-xl transition-all duration-300 hover:scale-110 active:scale-95
+                            ${theme === 'cyberpunk' ? 'bg-cyber-primary text-black' : 'bg-paper-ink text-white sketchy-box'}
+                        `}
+                    >
+                        →
+                    </button>
+                )}
+
+                <div
+                    ref={scrollRef}
+                    onScroll={handleScroll}
+                    className="flex gap-6 overflow-x-auto scrollbar-hide pb-6 px-2 -mx-2 snap-x snap-mandatory"
+                    style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                >
+                    {projects.map((project) => (
+                        <div
+                            key={project.id}
+                            onClick={() => isPersonal && onSelect(project)}
+                            className={`
+                                min-w-[280px] max-w-[280px] shrink-0 snap-start
+                                relative p-4 transition-all duration-200
+                                ${isPersonal ? 'cursor-pointer' : 'cursor-default'}
+                                ${selectedProjectId === project.id
+                                    ? `border-l-4 pl-4 ${theme === 'cyberpunk' ? 'bg-cyber-dark/50 border-cyber-primary' : 'bg-paper-highlight/20 border-paper-red'}`
+                                    : `${isPersonal ? 'hover:scale-[1.02] hover:opacity-90' : ''} ${theme === 'cyberpunk' ? 'hover:bg-cyber-dark/30' : 'hover:bg-black/5'}`
+                                }
+                                ${theme === 'paper' ? 'sketchy-border border-2 border-paper-ink h-32 flex flex-col justify-between' : 'border border-cyber-secondary h-32 flex flex-col justify-between bg-cyber-black'}
+                            `}
+                        >
+                            <div className="flex justify-between items-start">
+                                <h3 className={`font-bold truncate ${selectedProjectId ? 'text-xs' : 'text-lg'}`}>
+                                    {project.name}
+                                </h3>
+                                <div className="flex flex-col items-end">
+                                    {!isPersonal && (
+                                        <span className={`text-[9px] opacity-60 mb-1 uppercase tracking-tighter ${theme === 'cyberpunk' ? 'text-cyber-secondary' : 'text-paper-ink'}`}>
+                                            BY: {project.display_name || project.user_name}
+                                        </span>
+                                    )}
+                                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${theme === 'cyberpunk' ? 'bg-cyber-dark text-cyber-primary border border-cyber-primary/20' : 'bg-paper-ink text-white'}`}>
+                                        {project.status}
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="mt-2">
+                                <ProgressBar progress={project.progress} />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
 // --- Main Component ---
 
 const ProjectList = ({ view }) => {
@@ -521,54 +633,81 @@ const ProjectList = ({ view }) => {
                     )}
                 </div>
 
-                <div className={`overflow-y-auto px-4 pb-10 space-y-3 ${selectedProject ? '' : 'grid md:grid-cols-2 lg:grid-cols-3 gap-6 space-y-0 px-8'}`}>
-                    {projects.map((project) => (
-                        <div
-                            key={project.id}
-                            onClick={() => setSelectedProject(project)}
-                            className={`relative p-4 cursor-pointer group transition-all duration-200
-                                ${selectedProject?.id === project.id
-                                    ? `border-l-4 pl-4 ${theme === 'cyberpunk' ? 'bg-cyber-dark/50 border-cyber-primary' : 'bg-paper-highlight/20 border-paper-red'}`
-                                    : `hover:pl-5 hover:opacity-80 ${theme === 'cyberpunk' ? 'hover:bg-cyber-dark/30' : 'hover:bg-black/5'}`
-                                }
-                                ${!selectedProject && (theme === 'paper' ? 'sketchy-border border-2 border-paper-ink h-32 flex flex-col justify-between' : 'border border-cyber-secondary h-32 flex flex-col justify-between bg-cyber-black')}
-                            `}
-                        >
-                            <div className="flex justify-between items-start">
-                                <h3 className={`font-bold truncate ${selectedProject ? 'text-sm' : 'text-xl'}`}>
-                                    {project.name}
-                                </h3>
-                                <div className="flex flex-col items-end">
-                                    {!selectedProject && view === 'community' && (
-                                        <span className={`text-[10px] opacity-60 mb-1 uppercase tracking-tighter ${theme === 'cyberpunk' ? 'text-cyber-secondary' : 'text-paper-ink'}`}>
-                                            BY: {project.display_name || project.user_name}
-                                        </span>
-                                    )}
-                                    {!selectedProject && (
-                                        <span className={`text-xs px-2 py-1 rounded ${theme === 'cyberpunk' ? 'bg-cyber-dark text-cyber-primary' : 'bg-paper-ink text-white'}`}>
-                                            {project.status}
-                                        </span>
-                                    )}
+                <div className={`overflow-y-auto px-4 pb-10 ${selectedProject ? 'space-y-3' : 'px-8 py-4'}`}>
+                    {view === 'community' && !selectedProject ? (
+                        // Group by user for community view
+                        Object.entries(
+                            projects.reduce((acc, p) => {
+                                const key = p.display_name || p.user_name || 'Anonymous';
+                                if (!acc[key]) acc[key] = [];
+                                acc[key].push(p);
+                                return acc;
+                            }, {})
+                        ).map(([userName, userProjects]) => (
+                            <ProjectCarousel
+                                key={userName}
+                                title={userName}
+                                projects={userProjects}
+                                theme={theme}
+                                isPersonal={false}
+                                onSelect={setSelectedProject}
+                                selectedProjectId={selectedProject?.id}
+                            />
+                        ))
+                    ) : (
+                        // Regular list grid for personal view or sidebar
+                        <div className={selectedProject ? 'space-y-3' : 'grid md:grid-cols-2 lg:grid-cols-3 gap-6'}>
+                            {projects.map((project) => (
+                                <div
+                                    key={project.id}
+                                    onClick={() => view === 'personal' && setSelectedProject(project)}
+                                    className={`relative p-4 transition-all duration-200
+                                        ${view === 'personal' ? 'cursor-pointer' : 'cursor-default'}
+                                        ${selectedProject?.id === project.id
+                                            ? `border-l-4 pl-4 ${theme === 'cyberpunk' ? 'bg-cyber-dark/50 border-cyber-primary' : 'bg-paper-highlight/20 border-paper-red'}`
+                                            : `${view === 'personal' ? 'hover:pl-5 hover:opacity-80' : ''} ${theme === 'cyberpunk' ? 'hover:bg-cyber-dark/30' : 'hover:bg-black/5'}`
+                                        }
+                                        ${!selectedProject && (theme === 'paper' ? 'sketchy-border border-2 border-paper-ink h-32 flex flex-col justify-between' : 'border border-cyber-secondary h-32 flex flex-col justify-between bg-cyber-black')}
+                                    `}
+                                >
+
+                                    <div className="flex justify-between items-start">
+                                        <h3 className={`font-bold truncate ${selectedProject ? 'text-sm' : 'text-xl'}`}>
+                                            {project.name}
+                                        </h3>
+                                        <div className="flex flex-col items-end">
+                                            {!selectedProject && view === 'community' && (
+                                                <span className={`text-[10px] opacity-60 mb-1 uppercase tracking-tighter ${theme === 'cyberpunk' ? 'text-cyber-secondary' : 'text-paper-ink'}`}>
+                                                    BY: {project.display_name || project.user_name}
+                                                </span>
+                                            )}
+                                            {!selectedProject && (
+                                                <span className={`text-xs px-2 py-1 rounded ${theme === 'cyberpunk' ? 'bg-cyber-dark text-cyber-primary' : 'bg-paper-ink text-white'}`}>
+                                                    {project.status}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-2">
+                                        <ProgressBar progress={project.progress} />
+                                    </div>
                                 </div>
-                            </div>
+                            ))}
 
-                            <div className="mt-2">
-                                <ProgressBar progress={project.progress} />
-                            </div>
-                        </div>
-                    ))}
-
-                    {/* "New Project" Card (Only in Personal & Grid View) */}
-                    {view === 'personal' && !selectedProject && (
-                        <div
-                            onClick={() => { setEditingProject(null); setIsProjectModalOpen(true); }}
-                            className={`flex items-center justify-center p-6 border-2 border-dashed opacity-60 hover:opacity-100 cursor-pointer transition-all h-32
-                            ${theme === 'cyberpunk' ? 'border-cyber-muted text-cyber-muted hover:border-cyber-primary hover:text-cyber-primary' : 'border-paper-line text-paper-line hover:border-paper-red hover:text-paper-red'}
-                        `}>
-                            <div className="text-center">
-                                <span className="text-4xl block mb-2">+</span>
-                                <span className="font-bold">Nuevo Proyecto</span>
-                            </div>
+                            {/* "New Project" Card (Only in Personal & Grid View) */}
+                            {view === 'personal' && !selectedProject && (
+                                <div
+                                    onClick={() => { setEditingProject(null); setIsProjectModalOpen(true); }}
+                                    className={`flex items-center justify-center p-6 border-2 border-dashed opacity-60 hover:opacity-100 cursor-pointer transition-all h-32
+                                    ${theme === 'cyberpunk' ? 'border-cyber-muted text-cyber-muted hover:border-cyber-primary hover:text-cyber-primary' : 'border-paper-line text-paper-line hover:border-paper-red hover:text-paper-red'}
+                                `}>
+                                    <div className="text-center">
+                                        <span className="text-4xl block mb-2">+</span>
+                                        <span className="font-bold">Nuevo Proyecto</span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>

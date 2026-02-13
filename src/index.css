@@ -96,3 +96,12 @@
 .glitch-hover:hover {
   animation: glitch 0.2s cubic-bezier(.25, .46, .45, .94) both infinite;
 }
+
+/* Hide scrollbar for all browsers */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
