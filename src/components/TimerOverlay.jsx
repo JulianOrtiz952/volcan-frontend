@@ -2,11 +2,43 @@ import React from 'react';
 import { useTimer } from '../context/TimerContext';
 import { useTheme } from '../context/ThemeContext';
 
+// Helper for theme tokens
+const t4 = (theme, map) => map[theme] || map.dark;
+
+const getS = (theme) => ({
+    container: t4(theme, {
+        cyberpunk: 'bg-cyber-dark/90 border-2 border-cyber-primary text-white shadow-[0_0_20px_rgba(255,0,85,0.4)] backdrop-blur-md rounded-xl',
+        paper: 'bg-white border-2 border-paper-ink text-paper-ink sketchy-box shadow-xl',
+        dark: 'bg-dark-surface border border-dark-border text-dark-text shadow-[0_8px_32px_rgba(0,0,0,0.6)] rounded-2xl',
+        sakura: 'bg-white border border-sakura-blossom/50 text-sakura-ink sakura-card shadow-[0_8px_32px_rgba(232,87,122,0.15)] rounded-2xl',
+    }),
+    ring: t4(theme, {
+        cyberpunk: 'text-cyber-primary',
+        paper: 'text-paper-ink',
+        dark: 'text-dark-primary',
+        sakura: 'text-sakura-deep',
+    }),
+    value: t4(theme, {
+        cyberpunk: 'text-cyber-secondary',
+        paper: 'text-paper-ink',
+        dark: 'text-dark-text',
+        sakura: 'text-sakura-ink',
+    }),
+    label: t4(theme, {
+        cyberpunk: 'text-cyber-secondary/60',
+        paper: 'text-paper-ink/60',
+        dark: 'text-dark-muted',
+        sakura: 'text-sakura-muted',
+    })
+});
+
 const TimerOverlay = ({ currentView, setView }) => {
     const { timeLeft, isActive, mode, selectedTag, selectedProject, customDuration } = useTimer();
     const { theme } = useTheme();
 
     if (!isActive || currentView === 'timer') return null;
+
+    const s = getS(theme);
 
     const formatTime = (seconds) => {
         const mins = Math.floor(seconds / 60);
@@ -17,52 +49,39 @@ const TimerOverlay = ({ currentView, setView }) => {
     return (
         <div
             onClick={() => setView('timer')}
-            className={`
-                fixed bottom-6 right-6 z-[100] cursor-pointer group
-                p-4 flex items-center gap-4 transition-all duration-300 hover:scale-110 active:scale-95
-                ${theme === 'cyberpunk'
-                    ? 'bg-cyber-dark/90 border-2 border-cyber-primary text-white shadow-[0_0_20px_rgba(255,0,85,0.4)] backdrop-blur-md'
-                    : 'bg-white border-2 border-paper-ink text-paper-ink sketchy-border shadow-xl'}
-            `}
+            className={`fixed bottom-6 right-6 z-[100] cursor-pointer group p-4 flex items-center gap-4 transition-all duration-300 hover:scale-110 active:scale-95 ${s.container}`}
         >
-            <div className={`relative flex items-center justify-center`}>
+            <div className={`relative flex items-center justify-center ${s.ring}`}>
                 <svg className="w-12 h-12 -rotate-90">
                     <circle
-                        cx="24"
-                        cy="24"
-                        r="20"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                        fill="transparent"
+                        cx="24" cy="24" r="20"
+                        stroke="currentColor" strokeWidth="4" fill="transparent"
                         className="opacity-20"
                     />
                     <circle
-                        cx="24"
-                        cy="24"
-                        r="20"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                        fill="transparent"
+                        cx="24" cy="24" r="20"
+                        stroke="currentColor" strokeWidth="4" fill="transparent"
                         strokeDasharray={2 * Math.PI * 20}
-                        strokeDashoffset={2 * Math.PI * 20 * (1 - timeLeft / (customDuration * 60))}
+                        // Avoid division by zero issues
+                        strokeDashoffset={customDuration ? 2 * Math.PI * 20 * (1 - timeLeft / (customDuration * 60)) : 0}
                         className="transition-all duration-1000"
                     />
                 </svg>
-                <div className="absolute inset-0 flex items-center justify-center text-[10px] font-black">
+                <div className="absolute inset-0 flex items-center justify-center text-[10px] font-black pointer-events-none">
                     {mode === 'rest' ? 'REST' : 'FOCUS'}
                 </div>
             </div>
 
             <div>
-                <div className="text-xl font-black font-mono tracking-tighter">
+                <div className={`text-xl font-black font-mono tracking-tighter ${s.value}`}>
                     {formatTime(timeLeft)}
                 </div>
-                <div className="text-[10px] uppercase font-bold opacity-60 truncate max-w-[80px]">
+                <div className={`text-[10px] uppercase font-bold truncate max-w-[80px] ${s.label}`}>
                     {selectedProject ? selectedProject.name : selectedTag}
                 </div>
             </div>
 
-            <div className="hidden group-hover:block ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className={`hidden group-hover:block ml-2 opacity-0 group-hover:opacity-100 transition-opacity ${s.label}`}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6" /><path d="M10 14 21 3" /><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /></svg>
             </div>
         </div>
