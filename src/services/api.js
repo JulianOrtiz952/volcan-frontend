@@ -17,56 +17,89 @@ const getHeaders = () => {
 
 export const api = {
     get: async (endpoint) => {
-        const res = await fetch(`${API_URL}${endpoint}`, {
-            headers: getHeaders(),
-        });
-        if (res.status === 401) {
-            localStorage.removeItem('token');
-            window.location.reload();
+        try {
+            const res = await fetch(`${API_URL}${endpoint}`, {
+                headers: getHeaders(),
+            });
+            if (res.status === 401) {
+                localStorage.removeItem('token');
+                window.location.reload();
+            }
+            if (!res.ok) throw new Error(`API Error: ${res.statusText}`);
+            return res.json();
+        } catch (error) {
+            // Intercept network errors (Failed to fetch) when backend is down
+            if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                localStorage.removeItem('token');
+                window.location.reload();
+            }
+            throw error;
         }
-        if (!res.ok) throw new Error(`API Error: ${res.statusText}`);
-        return res.json();
     },
-    post: async (endpoint, data) => {
-        const res = await fetch(`${API_URL}${endpoint}`, {
-            method: 'POST',
-            headers: getHeaders(),
-            body: JSON.stringify(data),
-        });
-        if (res.status === 401) {
-            localStorage.removeItem('token');
-            window.location.reload();
+    post: async (endpoint, data = {}) => {
+        try {
+            const res = await fetch(`${API_URL}${endpoint}`, {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify(data),
+            });
+            if (res.status === 401) {
+                localStorage.removeItem('token');
+                window.location.reload();
+            }
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.non_field_errors || errData.detail || `API Error: ${res.statusText}`);
+            }
+            return res.json();
+        } catch (error) {
+            if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                localStorage.removeItem('token');
+                window.location.reload();
+            }
+            throw error;
         }
-        if (!res.ok) {
-            const errData = await res.json().catch(() => ({}));
-            throw new Error(errData.non_field_errors || errData.detail || `API Error: ${res.statusText}`);
-        }
-        return res.json();
     },
     patch: async (endpoint, data) => {
-        const res = await fetch(`${API_URL}${endpoint}`, {
-            method: 'PATCH',
-            headers: getHeaders(),
-            body: JSON.stringify(data),
-        });
-        if (res.status === 401) {
-            localStorage.removeItem('token');
-            window.location.reload();
+        try {
+            const res = await fetch(`${API_URL}${endpoint}`, {
+                method: 'PATCH',
+                headers: getHeaders(),
+                body: JSON.stringify(data),
+            });
+            if (res.status === 401) {
+                localStorage.removeItem('token');
+                window.location.reload();
+            }
+            if (!res.ok) throw new Error(`API Error: ${res.statusText}`);
+            return res.json();
+        } catch (error) {
+            if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                localStorage.removeItem('token');
+                window.location.reload();
+            }
+            throw error;
         }
-        if (!res.ok) throw new Error(`API Error: ${res.statusText}`);
-        return res.json();
     },
     delete: async (endpoint) => {
-        const res = await fetch(`${API_URL}${endpoint}`, {
-            method: 'DELETE',
-            headers: getHeaders(),
-        });
-        if (res.status === 401) {
-            localStorage.removeItem('token');
-            window.location.reload();
+        try {
+            const res = await fetch(`${API_URL}${endpoint}`, {
+                method: 'DELETE',
+                headers: getHeaders(),
+            });
+            if (res.status === 401) {
+                localStorage.removeItem('token');
+                window.location.reload();
+            }
+            if (!res.ok) throw new Error(`API Error: ${res.statusText}`);
+            return true;
+        } catch (error) {
+            if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                localStorage.removeItem('token');
+                window.location.reload();
+            }
+            throw error;
         }
-        if (!res.ok) throw new Error(`API Error: ${res.statusText}`);
-        return true;
     },
     // Auth helpers
     login: async (username, password) => {

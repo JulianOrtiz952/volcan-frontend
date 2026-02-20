@@ -6,6 +6,15 @@ import ConfirmModal from './ConfirmModal';
 
 // --- Sub-components ---
 
+// Returns a style object for elements that must adapt to all 4 themes
+const t4 = (theme, { cyber, paper, dark, sakura }) => {
+    if (theme === 'cyberpunk') return cyber;
+    if (theme === 'paper') return paper;
+    if (theme === 'dark') return dark;
+    if (theme === 'sakura') return sakura;
+    return cyber;
+};
+
 const SubtaskItem = ({ subtask, onToggle, onUpdate, onDelete, theme }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editTitle, setEditTitle] = useState(subtask.title);
@@ -26,6 +35,13 @@ const SubtaskItem = ({ subtask, onToggle, onUpdate, onDelete, theme }) => {
         }
     };
 
+    const checkCls = t4(theme, {
+        cyber: 'border-cyber-secondary text-cyber-secondary',
+        paper: 'border-paper-ink text-paper-ink rounded-sm',
+        dark: 'border-dark-primary text-dark-primary rounded',
+        sakura: 'border-sakura-deep text-sakura-deep rounded-full',
+    });
+
     return (
         <div key={subtask.id} className="flex items-center justify-between group/sub">
             <div
@@ -34,7 +50,7 @@ const SubtaskItem = ({ subtask, onToggle, onUpdate, onDelete, theme }) => {
             >
                 <div className={`w-4 h-4 mr-2 border flex items-center justify-center transition-all flex-shrink-0
                     ${subtask.completed ? 'bg-current' : 'transparent'}
-                    ${theme === 'cyberpunk' ? 'border-cyber-secondary text-cyber-secondary' : 'border-paper-ink text-paper-ink rounded-sm'}
+                    ${checkCls}
                 `}>
                     {subtask.completed && '✓'}
                 </div>
@@ -59,7 +75,7 @@ const SubtaskItem = ({ subtask, onToggle, onUpdate, onDelete, theme }) => {
                     <button
                         onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
                         className={`opacity-0 group-hover/sub:opacity-100 transition-opacity p-1 text-xs
-                            ${theme === 'cyberpunk' ? 'text-cyber-muted hover:text-white' : 'text-paper-ink/50 hover:text-paper-ink'}
+                            ${t4(theme, { cyber: 'text-cyber-muted hover:text-white', paper: 'text-paper-ink/50 hover:text-paper-ink', dark: 'text-dark-muted hover:text-dark-text', sakura: 'text-sakura-muted hover:text-sakura-ink' })}
                         `}
                         title="Editar subtarea"
                     >
@@ -68,7 +84,7 @@ const SubtaskItem = ({ subtask, onToggle, onUpdate, onDelete, theme }) => {
                     <button
                         onClick={(e) => { e.stopPropagation(); onDelete(subtask.id); }}
                         className={`opacity-0 group-hover/sub:opacity-100 transition-opacity p-1
-                            ${theme === 'cyberpunk' ? 'text-cyber-secondary hover:text-white' : 'text-paper-ink hover:text-paper-red'}
+                            ${t4(theme, { cyber: 'text-cyber-secondary hover:text-white', paper: 'text-paper-ink hover:text-paper-red', dark: 'text-dark-muted hover:text-red-400', sakura: 'text-sakura-muted hover:text-red-400' })}
                         `}
                         title="Eliminar subtarea"
                     >
@@ -123,8 +139,13 @@ const TaskItem = ({ task, onUpdate, onToggleTask, onToggleSubtask, onDeleteTask,
     };
 
     return (
-        <div className={`mb-6 p-4 rounded-lg transition-all group
-            ${theme === 'cyberpunk' ? 'bg-cyber-dark/30 border border-cyber-muted/30' : 'bg-white/80 border border-paper-line/50 shadow-sm'}
+        <div className={`mb-6 p-4 transition-all group
+            ${t4(theme, {
+            cyber: 'bg-cyber-dark/30 border border-cyber-muted/30',
+            paper: 'bg-white/80 border border-paper-line/50 shadow-sm',
+            dark: 'bg-dark-surface border border-dark-border rounded-xl',
+            sakura: 'bg-white sakura-card',
+        })}
         `}>
             <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center flex-1 min-w-0">
@@ -135,7 +156,12 @@ const TaskItem = ({ task, onUpdate, onToggleTask, onToggleSubtask, onDeleteTask,
                             onChange={toggleComplete}
                             className={`mr-3 w-5 h-5 appearance-none border transition-all cursor-pointer flex-shrink-0
                               ${task.completed ? 'bg-current border-transparent' : 'bg-transparent'}
-                              ${theme === 'cyberpunk' ? 'border-cyber-primary checked:bg-cyber-primary text-cyber-black' : 'border-paper-ink checked:bg-paper-red text-paper-bg rounded-md'}
+                              ${t4(theme, {
+                                cyber: 'border-cyber-primary checked:bg-cyber-primary text-cyber-black',
+                                paper: 'border-paper-ink checked:bg-paper-red text-paper-bg rounded-md',
+                                dark: 'border-dark-primary checked:bg-dark-primary text-white rounded-md',
+                                sakura: 'border-sakura-deep checked:bg-sakura-deep text-white rounded-full',
+                            })}
                             `}
                         />
                         {isEditing ? (
@@ -161,7 +187,7 @@ const TaskItem = ({ task, onUpdate, onToggleTask, onToggleSubtask, onDeleteTask,
                             <button
                                 onClick={() => setIsEditing(true)}
                                 className={`opacity-0 group-hover:opacity-100 transition-opacity p-1 text-sm
-                                    ${theme === 'cyberpunk' ? 'text-cyber-muted hover:text-white' : 'text-paper-ink/50 hover:text-paper-ink'}
+                                    ${t4(theme, { cyber: 'text-cyber-muted hover:text-white', paper: 'text-paper-ink/50 hover:text-paper-ink', dark: 'text-dark-muted hover:text-dark-text', sakura: 'text-sakura-muted hover:text-sakura-ink' })}
                                 `}
                                 title="Editar tarea"
                             >
@@ -170,7 +196,7 @@ const TaskItem = ({ task, onUpdate, onToggleTask, onToggleSubtask, onDeleteTask,
                             <button
                                 onClick={() => onDeleteTask(task.id)}
                                 className={`opacity-0 group-hover:opacity-100 transition-opacity p-1
-                                    ${theme === 'cyberpunk' ? 'text-cyber-secondary hover:text-white' : 'text-paper-ink hover:text-paper-red'}
+                                    ${t4(theme, { cyber: 'text-cyber-secondary hover:text-white', paper: 'text-paper-ink hover:text-paper-red', dark: 'text-dark-muted hover:text-red-400', sakura: 'text-sakura-muted hover:text-red-400' })}
                                 `}
                                 title="Eliminar tarea"
                             >
@@ -179,8 +205,13 @@ const TaskItem = ({ task, onUpdate, onToggleTask, onToggleSubtask, onDeleteTask,
                         </div>
                     )}
                 </div>
-                <div className={`text-xs font-mono px-2 py-1 rounded ml-2 flex-shrink-0
-                    ${theme === 'cyberpunk' ? 'bg-cyber-dark text-cyber-accent' : 'bg-paper-mark text-paper-ink'}
+                <div className={`text-xs font-mono px-2 py-1 ml-2 flex-shrink-0
+                    ${t4(theme, {
+                    cyber: 'bg-cyber-dark text-cyber-accent',
+                    paper: 'bg-paper-mark text-paper-ink',
+                    dark: 'bg-dark-elevated text-dark-accent rounded-lg',
+                    sakura: 'bg-sakura-petal text-sakura-deep rounded-full',
+                })}
                 `}>
                     {Math.round(task.progress)}%
                 </div>
@@ -222,7 +253,12 @@ const TaskItem = ({ task, onUpdate, onToggleTask, onToggleSubtask, onDeleteTask,
                                 onChange={e => setSubtaskTitle(e.target.value)}
                                 placeholder="Subtask..."
                                 className={`flex-1 text-sm px-2 py-1 rounded outline-none border
-                                    ${theme === 'cyberpunk' ? 'bg-cyber-black border-cyber-muted text-white' : 'bg-white border-paper-line text-black'}
+                                    ${t4(theme, {
+                                    cyber: 'bg-cyber-black border-cyber-muted text-white',
+                                    paper: 'bg-white border-paper-line text-black',
+                                    dark: 'bg-dark-elevated border-dark-border text-dark-text rounded-lg',
+                                    sakura: 'bg-sakura-surface border-sakura-blossom/40 text-sakura-ink rounded-lg',
+                                })}
                                 `}
                             />
                             <button type="submit" className="text-xs font-bold px-2 uppercase hover:opacity-80">Add</button>
@@ -256,61 +292,59 @@ const ProjectModal = ({ onClose, onSave, theme, editingProject = null }) => {
         onSave(name, desc);
     };
 
+    const modalBg = t4(theme, {
+        cyber: 'bg-cyber-dark border-2 border-cyber-primary',
+        paper: 'bg-paper-bg border-4 border-paper-ink rotate-1',
+        dark: 'bg-dark-surface border border-dark-border rounded-2xl',
+        sakura: 'bg-white sakura-card',
+    });
+    const labelCls = t4(theme, {
+        cyber: 'text-cyber-secondary', paper: 'text-paper-ink',
+        dark: 'text-dark-muted', sakura: 'text-sakura-subtle',
+    });
+    const inputCls = t4(theme, {
+        cyber: 'bg-cyber-black border-2 border-cyber-muted focus:border-cyber-primary text-white rounded',
+        paper: 'bg-white border-2 border-paper-line focus:border-paper-ink text-black sketchy-input',
+        dark: 'bg-dark-elevated border border-dark-border focus:border-dark-primary/50 text-dark-text rounded-lg',
+        sakura: 'bg-sakura-surface border border-sakura-blossom/50 focus:border-sakura-deep text-sakura-ink rounded-xl',
+    });
+    const btnPrimary = t4(theme, {
+        cyber: 'bg-cyber-primary text-black',
+        paper: 'bg-paper-ink text-white sketchy-box',
+        dark: 'bg-dark-primary text-white rounded-lg',
+        sakura: 'bg-sakura-deep text-white rounded-xl',
+    });
+
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-            <div className={`relative w-full max-w-md p-8 shadow-2xl transition-all scale-100
-                ${theme === 'cyberpunk' ? 'bg-cyber-dark border-2 border-cyber-primary' : 'bg-paper-bg border-4 border-paper-ink rotate-1'}
-             `}>
-                <h2 className={`text-2xl font-bold mb-6 text-center uppercase tracking-widest
-                    ${theme === 'cyberpunk' ? 'text-cyber-primary' : 'text-paper-ink scribble-underline'}
-                `}>{editingProject ? 'Edit Project' : 'New Project'}</h2>
+            <div className={`relative w-full max-w-md p-8 shadow-2xl transition-all scale-100 ${modalBg}`}>
+                <h2 className={`text-xl font-bold mb-6 text-center uppercase tracking-widest
+                    ${t4(theme, { cyber: 'text-cyber-primary', paper: 'text-paper-ink scribble-underline', dark: 'text-dark-text', sakura: 'text-sakura-ink' })}
+                `}>{editingProject ? 'Editar Proyecto' : 'Nuevo Proyecto'}</h2>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-5">
                     <div>
-                        <label className={`block text-xs font-bold uppercase mb-2 ${theme === 'cyberpunk' ? 'text-cyber-secondary' : 'text-paper-ink'}`}>Project Name</label>
-                        <input
-                            autoFocus
-                            type="text"
-                            value={name}
-                            onChange={e => setName(e.target.value)}
-                            className={`w-full p-3 rounded outline-none transition-all border-2
-                                ${theme === 'cyberpunk' ? 'bg-cyber-black border-cyber-muted focus:border-cyber-primary text-white' : 'bg-white border-paper-line focus:border-paper-ink text-black sketchy-input'}
-                            `}
-                            placeholder="e.g., Website Redesign"
-                        />
+                        <label className={`block text-xs font-semibold uppercase tracking-wider mb-1.5 ${labelCls}`}>Nombre del proyecto</label>
+                        <input autoFocus type="text" value={name} onChange={e => setName(e.target.value)}
+                            className={`w-full px-3 py-2.5 outline-none transition-all ${inputCls}`}
+                            placeholder="Ej. Rediseño de web" />
                     </div>
-
                     <div>
-                        <label className={`block text-xs font-bold uppercase mb-2 ${theme === 'cyberpunk' ? 'text-cyber-secondary' : 'text-paper-ink'}`}>Description (Optional)</label>
-                        <textarea
-                            value={desc}
-                            onChange={e => setDesc(e.target.value)}
-                            rows="3"
-                            className={`w-full p-3 rounded outline-none transition-all border-2
-                                ${theme === 'cyberpunk' ? 'bg-cyber-black border-cyber-muted focus:border-cyber-primary text-white' : 'bg-white border-paper-line focus:border-paper-ink text-black sketchy-input'}
-                            `}
-                            placeholder="What's this project about?"
-                        />
+                        <label className={`block text-xs font-semibold uppercase tracking-wider mb-1.5 ${labelCls}`}>Descripción (opcional)</label>
+                        <textarea value={desc} onChange={e => setDesc(e.target.value)} rows="3"
+                            className={`w-full px-3 py-2.5 outline-none transition-all resize-none ${inputCls}`}
+                            placeholder="¿De qué trata este proyecto?" />
                     </div>
-
-                    <div className="flex gap-4 pt-2">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className={`flex-1 py-3 font-bold uppercase tracking-wider hover:opacity-80 transition-opacity
-                                ${theme === 'cyberpunk' ? 'bg-cyber-muted/20 text-white' : 'bg-gray-200 text-gray-700'}
-                            `}
-                        >
-                            Cancel
+                    <div className="flex gap-3 pt-1">
+                        <button type="button" onClick={onClose}
+                            className={`flex-1 py-2.5 text-sm font-semibold hover:opacity-75 transition-all
+                                ${t4(theme, { cyber: 'bg-cyber-muted/20 text-white', paper: 'bg-gray-200 text-gray-700', dark: 'bg-dark-elevated text-dark-muted rounded-lg border border-dark-border', sakura: 'bg-sakura-petal text-sakura-subtle rounded-xl' })}
+                            `}>
+                            Cancelar
                         </button>
-                        <button
-                            type="submit"
-                            disabled={!name.trim()}
-                            className={`flex-1 py-3 font-bold uppercase tracking-wider hover:scale-[1.02] transition-transform
-                                ${theme === 'cyberpunk' ? 'bg-cyber-primary text-black' : 'bg-paper-ink text-white sketchy-box'}
-                            `}
-                        >
-                            {editingProject ? 'Save' : 'Create'}
+                        <button type="submit" disabled={!name.trim()}
+                            className={`flex-1 py-2.5 text-sm font-semibold hover:opacity-85 transition-all disabled:opacity-40 ${btnPrimary}`}>
+                            {editingProject ? 'Guardar' : 'Crear'}
                         </button>
                     </div>
                 </form>
@@ -346,11 +380,13 @@ const ProjectCarousel = ({ projects, title, theme, isPersonal, onSelect, selecte
         return () => window.removeEventListener('resize', handleScroll);
     }, [projects]);
 
-    const colors = theme === 'cyberpunk'
-        ? ['border-cyber-primary text-cyber-primary', 'border-cyber-secondary text-cyber-secondary', 'border-cyber-accent text-cyber-accent']
-        : ['border-paper-red text-paper-red', 'border-blue-500 text-blue-500', 'border-green-600 text-green-600', 'border-yellow-600 text-yellow-600'];
+    const colors = {
+        cyberpunk: ['border-cyber-primary text-cyber-primary', 'border-cyber-secondary text-cyber-secondary', 'border-cyber-accent text-cyber-accent'],
+        paper: ['border-paper-red text-paper-red', 'border-blue-500 text-blue-500', 'border-green-600 text-green-600', 'border-yellow-600 text-yellow-600'],
+        dark: ['border-dark-primary text-dark-primary', 'border-dark-accent text-dark-accent', 'border-dark-success text-dark-success'],
+        sakura: ['border-sakura-deep text-sakura-deep', 'border-sakura-gold text-sakura-gold', 'border-sakura-green text-sakura-green'],
+    }[theme] || ['border-gray-400 text-gray-400'];
 
-    // Simple hash to pick a consistent color for the title
     const colorIndex = Math.abs(title.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % colors.length;
     const colorClass = colors[colorIndex];
 
@@ -362,23 +398,19 @@ const ProjectCarousel = ({ projects, title, theme, isPersonal, onSelect, selecte
 
             <div className="relative">
                 {showLeft && (
-                    <button
-                        onClick={(e) => { e.stopPropagation(); scroll('left'); }}
-                        className={`absolute -left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full flex items-center justify-center shadow-xl transition-all duration-300 hover:scale-110 active:scale-95
-                            ${theme === 'cyberpunk' ? 'bg-cyber-primary text-black' : 'bg-paper-ink text-white sketchy-box'}
-                        `}
-                    >
+                    <button onClick={(e) => { e.stopPropagation(); scroll('left'); }}
+                        className={`absolute -left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full flex items-center justify-center shadow-xl transition-all hover:scale-110 active:scale-95
+                            ${t4(theme, { cyber: 'bg-cyber-primary text-black', paper: 'bg-paper-ink text-white sketchy-box', dark: 'bg-dark-primary text-white', sakura: 'bg-sakura-deep text-white' })}
+                        `}>
                         ←
                     </button>
                 )}
 
                 {showRight && (
-                    <button
-                        onClick={(e) => { e.stopPropagation(); scroll('right'); }}
-                        className={`absolute -right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full flex items-center justify-center shadow-xl transition-all duration-300 hover:scale-110 active:scale-95
-                            ${theme === 'cyberpunk' ? 'bg-cyber-primary text-black' : 'bg-paper-ink text-white sketchy-box'}
-                        `}
-                    >
+                    <button onClick={(e) => { e.stopPropagation(); scroll('right'); }}
+                        className={`absolute -right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full flex items-center justify-center shadow-xl transition-all hover:scale-110 active:scale-95
+                            ${t4(theme, { cyber: 'bg-cyber-primary text-black', paper: 'bg-paper-ink text-white sketchy-box', dark: 'bg-dark-primary text-white', sakura: 'bg-sakura-deep text-white' })}
+                        `}>
                         →
                     </button>
                 )}
@@ -395,26 +427,38 @@ const ProjectCarousel = ({ projects, title, theme, isPersonal, onSelect, selecte
                             onClick={() => isPersonal && onSelect(project)}
                             className={`
                                 min-w-[280px] max-w-[280px] shrink-0 snap-start
-                                relative p-4 transition-all duration-200
+                                relative p-4 transition-all duration-200 h-32 flex flex-col justify-between
                                 ${isPersonal ? 'cursor-pointer' : 'cursor-default'}
                                 ${selectedProjectId === project.id
-                                    ? `border-l-4 pl-4 ${theme === 'cyberpunk' ? 'bg-cyber-dark/50 border-cyber-primary' : 'bg-paper-highlight/20 border-paper-red'}`
-                                    : `${isPersonal ? 'hover:scale-[1.02] hover:opacity-90' : ''} ${theme === 'cyberpunk' ? 'hover:bg-cyber-dark/30' : 'hover:bg-black/5'}`
+                                    ? `border-l-4 pl-4 ${t4(theme, { cyber: 'bg-cyber-dark/50 border-cyber-primary', paper: 'bg-paper-highlight/20 border-paper-red', dark: 'bg-dark-primary/10 border-dark-primary', sakura: 'bg-sakura-blossom/15 border-sakura-deep' })}`
+                                    : `${isPersonal ? 'hover:scale-[1.02] hover:opacity-90' : ''} ${t4(theme, { cyber: 'hover:bg-cyber-dark/30', paper: 'hover:bg-black/5', dark: 'hover:bg-dark-elevated', sakura: 'hover:bg-sakura-petal/30' })}`
                                 }
-                                ${theme === 'paper' ? 'sketchy-border border-2 border-paper-ink h-32 flex flex-col justify-between' : 'border border-cyber-secondary h-32 flex flex-col justify-between bg-cyber-black'}
+                                ${t4(theme, {
+                                    cyber: 'border border-cyber-secondary/50 bg-cyber-black',
+                                    paper: 'sketchy-border border-2 border-paper-ink',
+                                    dark: 'bg-dark-surface border border-dark-border rounded-xl',
+                                    sakura: 'sakura-card bg-white',
+                                })}
                             `}
                         >
                             <div className="flex justify-between items-start">
                                 <h3 className={`font-bold truncate ${selectedProjectId ? 'text-xs' : 'text-lg'}`}>
                                     {project.name}
                                 </h3>
-                                <div className="flex flex-col items-end">
+                                <div className="flex flex-col items-end gap-1">
                                     {!isPersonal && (
-                                        <span className={`text-[9px] opacity-60 mb-1 uppercase tracking-tighter ${theme === 'cyberpunk' ? 'text-cyber-secondary' : 'text-paper-ink'}`}>
-                                            BY: {project.display_name || project.user_name}
+                                        <span className={`text-[9px] opacity-60 mb-0.5 uppercase tracking-tighter ${t4(theme, { cyber: 'text-cyber-secondary', paper: 'text-paper-ink', dark: 'text-dark-muted', sakura: 'text-sakura-muted' })}`}>
+                                            {project.display_name || project.user_name}
                                         </span>
                                     )}
-                                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${theme === 'cyberpunk' ? 'bg-cyber-dark text-cyber-primary border border-cyber-primary/20' : 'bg-paper-ink text-white'}`}>
+                                    <span className={`text-[10px] px-1.5 py-0.5 font-medium
+                                        ${t4(theme, {
+                                        cyber: 'bg-cyber-dark text-cyber-primary border border-cyber-primary/20',
+                                        paper: 'bg-paper-ink text-white',
+                                        dark: 'bg-dark-elevated text-dark-subtle rounded-md border border-dark-border',
+                                        sakura: 'bg-sakura-petal text-sakura-subtle rounded-full',
+                                    })}
+                                    `}>
                                         {project.status}
                                     </span>
                                 </div>
@@ -621,12 +665,14 @@ const ProjectList = ({ view }) => {
             <div className={`
                 flex-shrink-0 transition-all duration-300 ease-in-out border-r
                 ${selectedProject ? 'w-80' : 'w-full max-w-5xl mx-auto border-r-0'}
-                ${theme === 'cyberpunk' ? 'border-cyber-muted/20' : 'border-paper-line/30'}
+                ${t4(theme, { cyber: 'border-cyber-muted/20', paper: 'border-paper-line/30', dark: 'border-dark-border', sakura: 'border-sakura-blossom/25' })}
                 flex flex-col
             `}>
                 <div className="p-4 flex items-center justify-between">
-                    <h2 className={`font-bold uppercase tracking-wider ${theme === 'cyberpunk' ? 'text-cyber-muted' : 'text-paper-ink/50'}`}>
-                        Projects
+                    <h2 className={`text-sm font-semibold uppercase tracking-wider
+                        ${t4(theme, { cyber: 'text-cyber-muted', paper: 'text-paper-ink/50', dark: 'text-dark-muted', sakura: 'text-sakura-muted' })}
+                    `}>
+                        Proyectos
                     </h2>
                     {view === 'personal' && (
                         <button onClick={() => { setEditingProject(null); setIsProjectModalOpen(true); }} className="text-2xl hover:scale-110 transition-transform">+</button>
@@ -664,10 +710,15 @@ const ProjectList = ({ view }) => {
                                     className={`relative p-4 transition-all duration-200
                                         ${view === 'personal' ? 'cursor-pointer' : 'cursor-default'}
                                         ${selectedProject?.id === project.id
-                                            ? `border-l-4 pl-4 ${theme === 'cyberpunk' ? 'bg-cyber-dark/50 border-cyber-primary' : 'bg-paper-highlight/20 border-paper-red'}`
-                                            : `${view === 'personal' ? 'hover:pl-5 hover:opacity-80' : ''} ${theme === 'cyberpunk' ? 'hover:bg-cyber-dark/30' : 'hover:bg-black/5'}`
+                                            ? `border-l-4 pl-4 ${t4(theme, { cyber: 'bg-cyber-dark/50 border-cyber-primary', paper: 'bg-paper-highlight/20 border-paper-red', dark: 'bg-dark-primary/8 border-dark-primary', sakura: 'bg-sakura-blossom/10 border-sakura-deep' })}`
+                                            : `${view === 'personal' ? 'hover:pl-5 hover:opacity-80' : ''} ${t4(theme, { cyber: 'hover:bg-cyber-dark/30', paper: 'hover:bg-black/5', dark: 'hover:bg-dark-elevated', sakura: 'hover:bg-sakura-petal/20' })}`
                                         }
-                                        ${!selectedProject && (theme === 'paper' ? 'sketchy-border border-2 border-paper-ink h-32 flex flex-col justify-between' : 'border border-cyber-secondary h-32 flex flex-col justify-between bg-cyber-black')}
+                                        ${!selectedProject && t4(theme, {
+                                            cyber: 'border border-cyber-secondary/50 h-32 flex flex-col justify-between bg-cyber-black',
+                                            paper: 'sketchy-border border-2 border-paper-ink h-32 flex flex-col justify-between',
+                                            dark: 'border border-dark-border rounded-xl h-32 flex flex-col justify-between bg-dark-surface dark-card',
+                                            sakura: 'sakura-card bg-white h-32 flex flex-col justify-between',
+                                        })}
                                     `}
                                 >
 
@@ -675,14 +726,16 @@ const ProjectList = ({ view }) => {
                                         <h3 className={`font-bold truncate ${selectedProject ? 'text-sm' : 'text-xl'}`}>
                                             {project.name}
                                         </h3>
-                                        <div className="flex flex-col items-end">
+                                        <div className="flex flex-col items-end gap-1">
                                             {!selectedProject && view === 'community' && (
-                                                <span className={`text-[10px] opacity-60 mb-1 uppercase tracking-tighter ${theme === 'cyberpunk' ? 'text-cyber-secondary' : 'text-paper-ink'}`}>
-                                                    BY: {project.display_name || project.user_name}
+                                                <span className={`text-[10px] opacity-60 mb-0.5 uppercase tracking-tighter ${t4(theme, { cyber: 'text-cyber-secondary', paper: 'text-paper-ink', dark: 'text-dark-muted', sakura: 'text-sakura-muted' })}`}>
+                                                    {project.display_name || project.user_name}
                                                 </span>
                                             )}
                                             {!selectedProject && (
-                                                <span className={`text-xs px-2 py-1 rounded ${theme === 'cyberpunk' ? 'bg-cyber-dark text-cyber-primary' : 'bg-paper-ink text-white'}`}>
+                                                <span className={`text-xs px-2 py-0.5 font-medium
+                                                    ${t4(theme, { cyber: 'bg-cyber-dark text-cyber-primary', paper: 'bg-paper-ink text-white', dark: 'bg-dark-elevated text-dark-subtle rounded-md border border-dark-border', sakura: 'bg-sakura-petal text-sakura-subtle rounded-full' })}
+                                                `}>
                                                     {project.status}
                                                 </span>
                                             )}
@@ -700,11 +753,16 @@ const ProjectList = ({ view }) => {
                                 <div
                                     onClick={() => { setEditingProject(null); setIsProjectModalOpen(true); }}
                                     className={`flex items-center justify-center p-6 border-2 border-dashed opacity-60 hover:opacity-100 cursor-pointer transition-all h-32
-                                    ${theme === 'cyberpunk' ? 'border-cyber-muted text-cyber-muted hover:border-cyber-primary hover:text-cyber-primary' : 'border-paper-line text-paper-line hover:border-paper-red hover:text-paper-red'}
+                                    ${t4(theme, {
+                                        cyber: 'border-cyber-muted text-cyber-muted hover:border-cyber-primary hover:text-cyber-primary',
+                                        paper: 'border-paper-line text-paper-line hover:border-paper-red hover:text-paper-red',
+                                        dark: 'border-dark-border text-dark-muted hover:border-dark-primary hover:text-dark-primary rounded-xl',
+                                        sakura: 'border-sakura-blossom/40 text-sakura-blossom hover:border-sakura-deep hover:text-sakura-deep rounded-xl',
+                                    })}
                                 `}>
                                     <div className="text-center">
-                                        <span className="text-4xl block mb-2">+</span>
-                                        <span className="font-bold">Nuevo Proyecto</span>
+                                        <span className="text-3xl block mb-2">+</span>
+                                        <span className="text-sm font-semibold">Nuevo Proyecto</span>
                                     </div>
                                 </div>
                             )}
@@ -718,44 +776,38 @@ const ProjectList = ({ view }) => {
                 <div className={`
                     flex-1 flex flex-col min-w-0
                     animate-in fade-in slide-in-from-right-4 duration-300
-                    ${theme === 'cyberpunk' ? 'bg-cyber-black/80' : 'bg-paper-bg'}
+                    ${t4(theme, { cyber: 'bg-cyber-black/80', paper: 'bg-paper-bg', dark: 'bg-dark-bg', sakura: 'bg-sakura-bg' })}
                 `}>
                     {/* Detail Header */}
-                    <div className={`p-8 pb-4 border-b ${theme === 'cyberpunk' ? 'border-cyber-muted/20' : 'border-paper-line/20'}`}>
+                    <div className={`px-10 pt-10 pb-5 border-b ${t4(theme, { cyber: 'border-cyber-muted/20', paper: 'border-paper-line/20', dark: 'border-dark-border', sakura: 'border-sakura-blossom/25' })}`}>
                         <div className="flex justify-between items-start">
                             <div className="flex-1 min-w-0 pr-4">
-                                <div className="flex items-center gap-4 mb-2">
-                                    <h1 className={`text-4xl font-bold truncate ${theme === 'cyberpunk' ? 'text-cyber-text' : 'text-paper-ink scribble-underline'}`}>
+                                <div className="flex items-center gap-3 mb-2">
+                                    <h1 className={`text-3xl font-bold truncate
+                                        ${t4(theme, { cyber: 'text-cyber-text', paper: 'text-paper-ink scribble-underline', dark: 'text-dark-text', sakura: 'text-sakura-ink' })}
+                                    `}>
                                         {selectedProject.name}
                                     </h1>
                                     {view === 'personal' && (
-                                        <div className="flex gap-2 shrink-0">
-                                            <button
-                                                onClick={() => { setEditingProject(selectedProject); setIsProjectModalOpen(true); }}
-                                                className={`p-2 rounded-full hover:bg-black/5 flex items-center justify-center text-xl
-                                                    ${theme === 'cyberpunk' ? 'text-cyber-muted hover:text-cyber-primary' : 'text-paper-ink/50 hover:text-paper-ink'}
-                                                `}
-                                                title="Editar proyecto"
-                                            >
-                                                ✎
-                                            </button>
-                                            <button
-                                                onClick={() => triggerConfirm('project', selectedProject.id, '¿Eliminar proyecto?', `¿Estás seguro de que deseas eliminar "${selectedProject.name}"? Esta acción borrará todas sus tareas y no se puede deshacer.`)}
-                                                className={`p-2 rounded-full hover:bg-black/5 flex items-center justify-center text-xl
-                                                    ${theme === 'cyberpunk' ? 'text-cyber-muted hover:text-cyber-secondary' : 'text-paper-ink/50 hover:text-paper-red'}
-                                                `}
-                                                title="Eliminar proyecto"
-                                            >
-                                                ✕
-                                            </button>
+                                        <div className="flex gap-1.5 shrink-0">
+                                            <button onClick={() => { setEditingProject(selectedProject); setIsProjectModalOpen(true); }}
+                                                className={`p-1.5 text-base transition-all
+                                                    ${t4(theme, { cyber: 'text-cyber-muted hover:text-cyber-primary', paper: 'text-paper-ink/50 hover:text-paper-ink', dark: 'text-dark-muted hover:text-dark-text rounded-lg hover:bg-dark-elevated', sakura: 'text-sakura-muted hover:text-sakura-ink rounded-xl hover:bg-sakura-petal/40' })}
+                                                `} title="Editar">✎</button>
+                                            <button onClick={() => triggerConfirm('project', selectedProject.id, '¿Eliminar proyecto?', `¿Estás seguro de que deseas eliminar "${selectedProject.name}"? Se borrarán todas sus tareas.`)}
+                                                className={`p-1.5 text-base transition-all
+                                                    ${t4(theme, { cyber: 'text-cyber-muted hover:text-cyber-secondary', paper: 'text-paper-ink/50 hover:text-paper-red', dark: 'text-dark-muted hover:text-red-400 rounded-lg hover:bg-dark-elevated', sakura: 'text-sakura-muted hover:text-red-400 rounded-xl hover:bg-red-50' })}
+                                                `} title="Eliminar">✕</button>
                                         </div>
                                     )}
                                 </div>
-                                <p className="opacity-60 max-w-2xl break-words">{selectedProject.description}</p>
+                                {selectedProject.description && <p className={`text-sm max-w-2xl break-words ${t4(theme, { cyber: 'text-cyber-secondary/60', paper: 'text-paper-ink/60', dark: 'text-dark-muted', sakura: 'text-sakura-muted' })}`}>{selectedProject.description}</p>}
                             </div>
                             <div className="flex gap-2">
-                                <button onClick={() => fetchTasks(selectedProject.id)} title="Refresh" className="opacity-50 hover:opacity-100">⟳</button>
-                                <button onClick={() => setSelectedProject(null)} className="opacity-50 hover:opacity-100">✕ Close</button>
+                                <button onClick={() => fetchTasks(selectedProject.id)} title="Actualizar"
+                                    className={`p-1.5 text-sm transition-all ${t4(theme, { cyber: 'opacity-50 hover:opacity-100', paper: 'opacity-50 hover:opacity-100', dark: 'text-dark-muted hover:text-dark-text hover:bg-dark-elevated rounded-lg', sakura: 'text-sakura-muted hover:text-sakura-ink hover:bg-sakura-petal rounded-xl' })}`}>⟳</button>
+                                <button onClick={() => setSelectedProject(null)}
+                                    className={`p-1.5 text-sm transition-all ${t4(theme, { cyber: 'opacity-50 hover:opacity-100', paper: 'opacity-50 hover:opacity-100', dark: 'text-dark-muted hover:text-dark-text hover:bg-dark-elevated rounded-lg', sakura: 'text-sakura-muted hover:text-sakura-ink hover:bg-sakura-petal rounded-xl' })}`}>✕</button>
                             </div>
                         </div>
                     </div>
@@ -788,28 +840,33 @@ const ProjectList = ({ view }) => {
 
                                     {/* New Task Input at bottom */}
                                     {view === 'personal' && (
-                                        <form onSubmit={handleCreateTask} className="mt-8 pt-4 opacity-80 hover:opacity-100 transition-opacity">
-                                            <div className={`flex items-center gap-2 p-3 rounded-lg border-2 border-transparent focus-within:border-opacity-50
-                                                ${theme === 'cyberpunk' ? 'focus-within:border-cyber-primary bg-cyber-dark/30' : 'focus-within:border-paper-ink bg-white/50 sketchy-input'}
+                                        <form onSubmit={handleCreateTask} className="mt-6 pt-4 opacity-80 hover:opacity-100 transition-opacity">
+                                            <div className={`flex items-center gap-2 p-3 border-2 border-dashed transition-all focus-within:border-solid
+                                                ${t4(theme, {
+                                                cyber: 'border-cyber-primary/20 focus-within:border-cyber-primary bg-cyber-dark/20',
+                                                paper: 'border-paper-line focus-within:border-paper-ink bg-white/50 sketchy-input',
+                                                dark: 'border-dark-border focus-within:border-dark-primary bg-dark-elevated rounded-xl',
+                                                sakura: 'border-sakura-blossom/30 focus-within:border-sakura-deep bg-white/60 rounded-xl',
+                                            })}
                                             `}>
-                                                <span className="text-xl pl-2 opacity-50">+</span>
+                                                <span className={`text-xl pl-1 opacity-40 ${t4(theme, { cyber: '', paper: '', dark: 'text-dark-muted', sakura: 'text-sakura-muted' })}`}>+</span>
                                                 <input
                                                     type="text"
                                                     value={newTaskTitle}
                                                     onChange={(e) => setNewTaskTitle(e.target.value)}
-                                                    placeholder="Add a new task..."
-                                                    className="flex-1 bg-transparent outline-none p-1"
-                                                />
-                                                <button
-                                                    type="submit"
-                                                    disabled={!newTaskTitle.trim()}
-                                                    className={`px-4 py-1 font-bold text-sm uppercase rounded
-                                                        ${theme === 'cyberpunk' ? 'bg-cyber-primary text-black' : 'bg-paper-ink text-white'}
-                                                        disabled:opacity-0 disabled:translate-x-4 transition-all
+                                                    placeholder="Añadir tarea..."
+                                                    className={`flex-1 bg-transparent outline-none text-sm
+                                                        ${t4(theme, { cyber: 'text-cyber-secondary', paper: 'text-paper-ink', dark: 'text-dark-text', sakura: 'text-sakura-ink' })}
                                                     `}
-                                                >
-                                                    Add
-                                                </button>
+                                                />
+                                                {newTaskTitle.trim() && (
+                                                    <button type="submit"
+                                                        className={`px-3 py-1 text-xs font-semibold transition-all
+                                                            ${t4(theme, { cyber: 'bg-cyber-primary text-black', paper: 'bg-paper-ink text-white', dark: 'bg-dark-primary text-white rounded-lg', sakura: 'bg-sakura-deep text-white rounded-xl' })}
+                                                        `}>
+                                                        Añadir
+                                                    </button>
+                                                )}
                                             </div>
                                         </form>
                                     )}
