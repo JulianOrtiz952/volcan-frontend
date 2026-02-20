@@ -664,7 +664,7 @@ const ProjectList = ({ view }) => {
             {/* LEFT COLUMN: Sidebar style (Notion-like) */}
             <div className={`
                 flex-shrink-0 transition-all duration-300 ease-in-out border-r
-                ${selectedProject ? 'w-80' : 'w-full max-w-5xl mx-auto border-r-0'}
+                ${selectedProject ? 'hidden md:flex md:w-80' : 'w-full max-w-5xl mx-auto border-r-0'}
                 ${t4(theme, { cyber: 'border-cyber-muted/20', paper: 'border-paper-line/30', dark: 'border-dark-border', sakura: 'border-sakura-blossom/25' })}
                 flex flex-col
             `}>
@@ -779,11 +779,15 @@ const ProjectList = ({ view }) => {
                     ${t4(theme, { cyber: 'bg-cyber-black/80', paper: 'bg-paper-bg', dark: 'bg-dark-bg', sakura: 'bg-sakura-bg' })}
                 `}>
                     {/* Detail Header */}
-                    <div className={`px-10 pt-10 pb-5 border-b ${t4(theme, { cyber: 'border-cyber-muted/20', paper: 'border-paper-line/20', dark: 'border-dark-border', sakura: 'border-sakura-blossom/25' })}`}>
+                    <div className={`px-4 md:px-10 pt-6 md:pt-10 pb-5 border-b ${t4(theme, { cyber: 'border-cyber-muted/20', paper: 'border-paper-line/20', dark: 'border-dark-border', sakura: 'border-sakura-blossom/25' })}`}>
                         <div className="flex justify-between items-start">
-                            <div className="flex-1 min-w-0 pr-4">
-                                <div className="flex items-center gap-3 mb-2">
-                                    <h1 className={`text-3xl font-bold truncate
+                            <div className="flex-1 min-w-0 pr-2 md:pr-4">
+                                <div className="flex items-center gap-2 md:gap-3 mb-2">
+                                    {/* Mobile back button */}
+                                    <button onClick={() => setSelectedProject(null)} className={`md:hidden p-1.5 -ml-2 rounded-lg transition-all ${t4(theme, { cyber: 'text-cyber-muted', paper: 'text-neutral-500', dark: 'text-dark-muted', sakura: 'text-sakura-muted' })}`}>
+                                        ←
+                                    </button>
+                                    <h1 className={`text-2xl md:text-3xl font-bold truncate
                                         ${t4(theme, { cyber: 'text-cyber-text', paper: 'text-paper-ink scribble-underline', dark: 'text-dark-text', sakura: 'text-sakura-ink' })}
                                     `}>
                                         {selectedProject.name}
@@ -813,7 +817,7 @@ const ProjectList = ({ view }) => {
                     </div>
 
                     {/* Tasks Container */}
-                    <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+                    <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
                         <div className="max-w-3xl mx-auto">
                             {loadingTasks ? (
                                 <div className="text-center py-20 opacity-50 animate-pulse">Loading neural connection...</div>

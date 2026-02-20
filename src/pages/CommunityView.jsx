@@ -275,13 +275,13 @@ const ProjectDetail = ({ project, theme, onUpdate, onClose }) => {
         <div className={`flex-1 flex flex-col min-w-0 overflow-hidden animate-in fade-in slide-in-from-right-2 duration-200 ${s.mainBg}`}>
 
             {/* Breadcrumb / header */}
-            <div className={`flex items-center justify-between px-8 py-4 border-b ${s.divider}`}>
+            <div className={`flex items-center justify-between px-4 md:px-8 py-4 border-b ${s.divider}`}>
                 <div className="flex items-center gap-2 min-w-0">
                     <button onClick={onClose} className={`p-1.5 rounded text-sm ${s.breadBtn} transition-all`}>
                         <ArrowLeft size={16} />
                     </button>
-                    <ChevronRight size={14} className={s.muted} />
-                    <FolderOpen size={16} className={s.subtle} />
+                    <ChevronRight size={14} className={`hidden md:block ${s.muted}`} />
+                    <FolderOpen size={16} className={`hidden md:block ${s.subtle}`} />
                     <span className={`text-sm font-medium truncate ${s.text}`}>{project.name}</span>
                 </div>
                 <button onClick={onUpdate} className={`p-1.5 rounded ${s.refreshBtn} transition-all`}>
@@ -290,7 +290,7 @@ const ProjectDetail = ({ project, theme, onUpdate, onClose }) => {
             </div>
 
             {/* Page header (Notion style) */}
-            <div className="px-16 pt-12 pb-6">
+            <div className="px-6 md:px-16 pt-8 md:pt-12 pb-6">
                 <div className="flex items-center gap-3 mb-2">
                     <FolderOpen size={36} className={s.titleIcon} />
                 </div>
@@ -311,7 +311,7 @@ const ProjectDetail = ({ project, theme, onUpdate, onClose }) => {
             </div>
 
             {/* Tabs */}
-            <div className={`flex gap-0 border-b ${s.divider} px-16`}>
+            <div className={`flex gap-0 border-b ${s.divider} px-6 md:px-16 overflow-x-auto`}>
                 {[
                     { key: 'tasks', label: 'Tareas', Icon: ClipboardList, count: tasks.length },
                     { key: 'notes', label: 'Notas', Icon: BookOpen, count: notes.length },
@@ -332,7 +332,7 @@ const ProjectDetail = ({ project, theme, onUpdate, onClose }) => {
 
                 {tab === 'tasks' ? (
                     // ── Tasks ──
-                    <div className={`flex-1 overflow-y-auto px-16 py-8 ${s.scrollCls}`}>
+                    <div className={`flex-1 overflow-y-auto px-6 md:px-16 py-8 ${s.scrollCls}`}>
                         <div className="max-w-2xl space-y-1">
                             {[...tasks].sort((a, b) => {
                                 if (a.completed !== b.completed) return a.completed ? 1 : -1;
@@ -378,7 +378,7 @@ const ProjectDetail = ({ project, theme, onUpdate, onClose }) => {
                     // ── Notes ──
                     <div className="flex-1 flex overflow-hidden">
                         {/* Notes sidebar */}
-                        <div className={`w-56 flex-shrink-0 flex flex-col border-r ${s.divider} ${s.panelBg} overflow-hidden`}>
+                        <div className={`w-full md:w-56 flex-shrink-0 flex flex-col border-r ${s.divider} ${s.panelBg} overflow-hidden ${selectedNote || editingNote ? 'hidden md:flex' : ''}`}>
                             <div className={`px-3 py-2.5 flex items-center justify-between border-b ${s.divider}`}>
                                 <span className={`text-xs font-semibold uppercase tracking-wider ${s.muted}`}>Páginas</span>
                                 <button onClick={newNote}
@@ -409,7 +409,7 @@ const ProjectDetail = ({ project, theme, onUpdate, onClose }) => {
                         </div>
 
                         {/* Note editor/viewer */}
-                        <div className={`flex-1 flex flex-col overflow-hidden ${s.mainBg}`}>
+                        <div className={`flex-1 flex flex-col overflow-hidden ${s.mainBg} ${!(selectedNote || editingNote) ? 'hidden md:flex' : ''}`}>
                             {!selectedNote && !editingNote ? (
                                 <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-8">
                                     <FileText size={48} className={s.emptyIcon} />
@@ -424,8 +424,13 @@ const ProjectDetail = ({ project, theme, onUpdate, onClose }) => {
                             ) : (
                                 <div className="flex-1 flex flex-col overflow-hidden">
                                     {/* Note toolbar */}
-                                    <div className={`flex items-center justify-between px-8 py-3 border-b ${s.divider}`}>
+                                    <div className={`flex items-center justify-between px-4 md:px-8 py-3 border-b ${s.divider}`}>
                                         <div className="flex items-center gap-2">
+                                            {!editingNote && (
+                                                <button onClick={() => setSelectedNote(null)} className={`md:hidden p-1.5 mr-1 rounded ${s.breadBtn}`}>
+                                                    <ArrowLeft size={16} />
+                                                </button>
+                                            )}
                                             {editingNote ? (
                                                 <>
                                                     <button onClick={saveNote} disabled={savingNote || !noteTitle.trim()}
@@ -458,7 +463,7 @@ const ProjectDetail = ({ project, theme, onUpdate, onClose }) => {
                                     </div>
 
                                     {/* Note content */}
-                                    <div className={`flex-1 overflow-y-auto px-16 py-10 ${s.scrollCls}`}>
+                                    <div className={`flex-1 overflow-y-auto px-6 md:px-16 py-6 md:py-10 ${s.scrollCls}`}>
                                         <div className="max-w-2xl mx-auto">
                                             {editingNote ? (
                                                 <>
@@ -492,7 +497,7 @@ const ProjectDetail = ({ project, theme, onUpdate, onClose }) => {
 };
 
 // ── Community Panel ───────────────────────────────────────────────────────────
-const CommunityPanel = ({ community, currentUserId, theme, onUpdate, onCreateProject }) => {
+const CommunityPanel = ({ community, currentUserId, theme, onUpdate, onCreateProject, onClose }) => {
     const s = useStyles(theme);
     const [addInput, setAddInput] = useState('');
     const [addError, setAddError] = useState('');
@@ -665,15 +670,18 @@ const CommunityPanel = ({ community, currentUserId, theme, onUpdate, onCreatePro
             {/* Kick confirmation modal */}
             {KickModal}
             {/* Page header */}
-            <div className={`flex items-center gap-3 px-8 py-4 border-b ${s.divider}`}>
-                <Globe size={16} className={s.subtle} />
+            <div className={`flex items-center gap-3 px-4 md:px-8 py-4 border-b ${s.divider}`}>
+                <button onClick={onClose} className={`md:hidden p-1.5 -ml-2 rounded ${s.breadBtn}`}>
+                    <ArrowLeft size={16} />
+                </button>
+                <Globe size={16} className={`hidden md:block ${s.subtle}`} />
                 <span className={`text-sm font-medium ${s.text}`}>{community.name}</span>
                 <span className={s.muted}>·</span>
                 <span className={`text-sm ${s.muted}`}>{community.member_count} miembro{community.member_count !== 1 ? 's' : ''}</span>
             </div>
 
             <div className={`flex-1 overflow-y-auto ${s.scrollCls}`}>
-                <div className="px-16 pt-12 pb-16 max-w-4xl">
+                <div className="px-6 md:px-16 pt-8 md:pt-12 pb-16 max-w-4xl">
 
                     {/* Community title */}
                     <div className="flex items-center gap-3 mb-1">
@@ -848,7 +856,7 @@ export default function CommunityView() {
             )}
 
             {/* Sidebar */}
-            <aside className={`w-60 flex-shrink-0 flex flex-col border-r ${s.divider} ${s.panelBg} overflow-hidden`}>
+            <aside className={`w-full md:w-60 flex-shrink-0 flex flex-col border-r ${s.divider} ${s.panelBg} overflow-hidden ${selected ? 'hidden md:flex' : ''}`}>
                 {/* Sidebar header */}
                 <div className={`px-4 py-4 border-b ${s.divider}`}>
                     <div className="flex items-center justify-between">
@@ -902,7 +910,7 @@ export default function CommunityView() {
             </aside>
 
             {/* Main content */}
-            <main className="flex-1 flex overflow-hidden">
+            <main className={`flex-1 overflow-hidden ${!selected ? 'hidden md:flex' : 'flex'}`}>
                 {!selected ? (
                     <div className={`flex-1 flex flex-col items-center justify-center gap-5 text-center px-8 ${s.mainBg}`}>
                         <Globe size={64} className={s.emptyIcon} />
@@ -916,7 +924,7 @@ export default function CommunityView() {
                     </div>
                 ) : (
                     <CommunityPanel key={selected.id} community={selected} currentUserId={user?.id} theme={theme}
-                        onUpdate={() => fetchAll(true)} onCreateProject={(id) => setModalProject(id)} />
+                        onUpdate={() => fetchAll(true)} onCreateProject={(id) => setModalProject(id)} onClose={() => setSelected(null)} />
                 )}
             </main>
         </div>

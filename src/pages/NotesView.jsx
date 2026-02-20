@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-    Plus, Search, FileText, Trash2, Edit3, Save, X, Tag
+    Plus, Search, FileText, Trash2, Edit3, Save, X, Tag, ArrowLeft
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { api } from '../services/api';
@@ -207,11 +207,13 @@ export default function NotesView() {
         } catch (e) { console.error(e); } finally { setConfirmDelete(false); }
     };
 
+    const isDetailOpen = selectedNote || isEditing;
+
     return (
         <div className={`flex h-full min-h-0 overflow-hidden ${rootCls}`}>
 
             {/* ── Left Panel ── */}
-            <aside className={`w-64 flex-shrink-0 flex flex-col border-r ${divider} ${panelBg} overflow-hidden`}>
+            <aside className={`w-full md:w-64 flex-shrink-0 flex flex-col border-r ${divider} ${panelBg} overflow-hidden ${isDetailOpen ? 'hidden md:flex' : ''}`}>
 
                 {/* Header */}
                 <div className={`px-4 py-4 border-b ${divider}`}>
@@ -287,7 +289,7 @@ export default function NotesView() {
             </aside>
 
             {/* ── Right Panel ── */}
-            <main className={`flex-1 flex flex-col overflow-hidden ${mainBg}`}>
+            <main className={`flex-1 flex flex-col overflow-hidden ${mainBg} ${!isDetailOpen ? 'hidden md:flex' : ''}`}>
                 {!selectedNote && !isEditing ? (
                     /* Empty state */
                     <div className="flex-1 flex flex-col items-center justify-center gap-5 text-center px-8">
@@ -303,8 +305,13 @@ export default function NotesView() {
                 ) : (
                     <div className="flex-1 flex flex-col overflow-hidden">
                         {/* Toolbar */}
-                        <div className={`flex items-center justify-between px-8 py-3 border-b ${divider}`}>
+                        <div className={`flex items-center justify-between px-4 md:px-8 py-3 border-b ${divider}`}>
                             <div className="flex items-center gap-2">
+                                {!isEditing && (
+                                    <button onClick={() => setSelectedNote(null)} className={`md:hidden p-1.5 mr-1 rounded ${btnSecondary}`}>
+                                        <ArrowLeft size={16} />
+                                    </button>
+                                )}
                                 {isEditing ? (
                                     <>
                                         <button id="notes-save-btn" onClick={saveNote} disabled={saving || !formTitle.trim()}
@@ -357,7 +364,7 @@ export default function NotesView() {
                         </div>
 
                         {/* Content area — Notion style */}
-                        <div className={`flex-1 overflow-y-auto px-16 py-10 ${scrollCls}`}>
+                        <div className={`flex-1 overflow-y-auto px-6 md:px-16 py-6 md:py-10 ${scrollCls}`}>
                             <div className="max-w-2xl mx-auto">
                                 {isEditing ? (
                                     <>

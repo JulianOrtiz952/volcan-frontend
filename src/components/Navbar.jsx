@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Layout, Globe, Timer, StickyNote, Settings, LogOut, Bell } from 'lucide-react';
+import { Layout, Globe, Timer, StickyNote, Settings, LogOut, Bell, Menu, X } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useUser } from '../context/UserContext';
 import { api } from '../services/api';
@@ -63,6 +63,7 @@ const getThemeStyles = (theme) => {
         case 'cyberpunk':
             return {
                 nav: 'bg-cyber-dark/90 border-cyber-primary text-cyber-secondary backdrop-blur-md border-b-2',
+                mobileMenu: 'bg-cyber-dark border-b-2 border-cyber-primary shadow-[0_4px_15px_rgba(255,0,85,0.2)]',
                 logo: 'text-cyber-secondary',
                 logoAccent: 'text-cyber-accent',
                 navBtn: (a) => `border border-transparent font-bold tracking-wider text-sm
@@ -79,6 +80,7 @@ const getThemeStyles = (theme) => {
         case 'paper':
             return {
                 nav: 'bg-paper-bg border-paper-ink text-paper-ink sketchy-border border-b-2',
+                mobileMenu: 'bg-paper-bg border-b-2 border-paper-ink sketchy-box shadow-lg',
                 logo: 'text-paper-ink',
                 logoAccent: 'text-paper-red scribble-underline',
                 navBtn: (a) => `sketchy-box border-2 font-bold
@@ -95,6 +97,7 @@ const getThemeStyles = (theme) => {
         case 'dark':
             return {
                 nav: 'bg-dark-surface border-dark-border text-dark-text border-b',
+                mobileMenu: 'bg-dark-surface border-b border-dark-border shadow-2xl',
                 logo: 'text-dark-text',
                 logoAccent: 'text-dark-primary',
                 navBtn: (a) => `text-sm font-medium rounded-lg
@@ -111,6 +114,7 @@ const getThemeStyles = (theme) => {
         case 'sakura':
             return {
                 nav: 'bg-sakura-surface border-sakura-blossom/40 text-sakura-ink border-b-2',
+                mobileMenu: 'bg-sakura-surface border-b border-sakura-blossom shadow-xl',
                 logo: 'text-sakura-ink',
                 logoAccent: 'text-sakura-deep',
                 navBtn: (a) => `text-sm font-medium rounded-xl
@@ -134,6 +138,7 @@ const Navbar = ({ currentView, setView, onCommunityJoined }) => {
     const { theme } = useTheme();
     const { user, logout } = useUser();
     const [showNotifications, setShowNotifications] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
 
     const s = getThemeStyles(theme);
@@ -162,16 +167,26 @@ const Navbar = ({ currentView, setView, onCommunityJoined }) => {
     }, [fetchCount, onCommunityJoined]);
 
     return (
-        <nav className={`px-4 py-2.5 flex justify-between items-center z-50 gap-3 transition-colors duration-300 ${s.nav}`}>
+        <nav className={`px-4 py-2.5 flex justify-between items-center z-50 gap-3 transition-colors duration-300 relative ${s.nav}`}>
 
-            {/* ── Logo ── */}
-            <h1 className={`text-lg font-black tracking-tighter flex-shrink-0 ${s.logo}`}>
-                PROJECT{' '}
-                <span className={s.logoAccent}>VOLCAN</span>
-            </h1>
+            <div className="flex items-center gap-2 md:gap-3">
+                {/* ── Mobile Hamburger ── */}
+                <button
+                    onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                    className={`md:hidden p-1.5 transition-all ${s.actionBtn(isMobileMenuOpen)}`}
+                >
+                    {isMobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
+                </button>
 
-            {/* ── Navigation ── */}
-            <div className="flex gap-1">
+                {/* ── Logo ── */}
+                <h1 className={`text-lg font-black tracking-tighter flex-shrink-0 ${s.logo}`}>
+                    PROJECT{' '}
+                    <span className={s.logoAccent}>VOLCAN</span>
+                </h1>
+            </div>
+
+            {/* ── Desktop Navigation ── */}
+            <div className="hidden md:flex gap-1 absolute left-1/2 -translate-x-1/2">
                 {NAV_ITEMS.map(({ key, label, Icon }) => {
                     const active = currentView === key;
                     return (
@@ -181,19 +196,19 @@ const Navbar = ({ currentView, setView, onCommunityJoined }) => {
                             className={`flex items-center gap-1.5 px-3 py-1.5 transition-all ${s.navBtn(active)}`}
                         >
                             <Icon size={14} strokeWidth={active ? 2.5 : 2} />
-                            <span className="hidden sm:inline text-xs">{label}</span>
+                            <span className="text-xs">{label}</span>
                         </button>
                     );
                 })}
             </div>
 
             {/* ── Right: User + actions ── */}
-            <div className="flex items-center gap-2.5 flex-shrink-0">
+            <div className="flex items-center gap-1.5 md:gap-2.5 flex-shrink-0">
 
                 {/* User avatar (initial circle) + name */}
-                <div className={`flex items-center gap-2 pr-2.5 border-r ${s.userBorder}`}>
-                    <Avatar name={displayName} size={34} theme={theme} />
-                    <span className={`font-semibold text-xs hidden sm:block truncate max-w-[5rem] ${s.nameCls}`}>
+                <div className={`flex items-center gap-2 pr-1.5 md:pr-2.5 border-r ${s.userBorder}`}>
+                    <Avatar name={displayName} size={30} theme={theme} />
+                    <span className={`font-semibold text-xs hidden md:block truncate max-w-[5rem] ${s.nameCls}`}>
                         {displayName}
                     </span>
                 </div>
@@ -227,7 +242,7 @@ const Navbar = ({ currentView, setView, onCommunityJoined }) => {
                 <button
                     onClick={() => setView('settings')}
                     title="Settings"
-                    className={`p-1.5 transition-all ${s.actionBtn(currentView === 'settings')}`}
+                    className={`p-1.5 transition-all hidden sm:block ${s.actionBtn(currentView === 'settings')}`}
                 >
                     <Settings size={15} strokeWidth={currentView === 'settings' ? 2.5 : 1.75} />
                 </button>
@@ -241,6 +256,36 @@ const Navbar = ({ currentView, setView, onCommunityJoined }) => {
                     <LogOut size={15} strokeWidth={1.75} />
                 </button>
             </div>
+
+            {/* ── Mobile Menu Dropdown ── */}
+            {isMobileMenuOpen && (
+                <div className={`absolute top-full left-0 w-full flex flex-col p-4 gap-2 md:hidden z-[60] ${s.mobileMenu} animate-in slide-in-from-top-2 duration-200`}>
+                    {NAV_ITEMS.map(({ key, label, Icon }) => {
+                        const active = currentView === key;
+                        return (
+                            <button
+                                key={key}
+                                onClick={() => { setView(key); setIsMobileMenuOpen(false); }}
+                                className={`flex items-center gap-3 px-4 py-3 transition-all w-full text-left ${s.navBtn(active)}`}
+                            >
+                                <Icon size={16} strokeWidth={active ? 2.5 : 2} />
+                                <span className="text-sm font-bold uppercase tracking-wide">{label}</span>
+                            </button>
+                        );
+                    })}
+
+                    {/* Settings mobile option */}
+                    <div className={`mt-2 pt-2 border-t ${s.userBorder}`}>
+                        <button
+                            onClick={() => { setView('settings'); setIsMobileMenuOpen(false); }}
+                            className={`flex items-center gap-3 px-4 py-3 transition-all w-full text-left mt-1 ${s.navBtn(currentView === 'settings')}`}
+                        >
+                            <Settings size={16} strokeWidth={currentView === 'settings' ? 2.5 : 2} />
+                            <span className="text-sm font-bold uppercase tracking-wide">Ajustes</span>
+                        </button>
+                    </div>
+                </div>
+            )}
         </nav>
     );
 };
