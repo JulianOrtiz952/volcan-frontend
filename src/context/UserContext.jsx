@@ -22,12 +22,15 @@ export const UserProvider = ({ children }) => {
             if (res.ok) {
                 const data = await res.json();
                 setUser(data);
-            } else if (res.status === 401) {
+            } else {
+                // 401, 403, 500, etc. → clear session
                 localStorage.removeItem('token');
                 setUser(null);
             }
-        } catch (err) {
-            console.error('Error fetching user:', err);
+        } catch {
+            // Network error (backend down / restarted) → force login
+            localStorage.removeItem('token');
+            setUser(null);
         } finally {
             setLoading(false);
         }

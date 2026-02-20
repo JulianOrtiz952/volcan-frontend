@@ -2,16 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useTheme, THEMES } from '../context/ThemeContext';
 import { useUser } from '../context/UserContext';
 
-const AVATARS = [
-    { url: 'https://api.dicebear.com/9.x/croodles-neutral/svg?seed=Felix', label: 'Fox' },
-    { url: 'https://api.dicebear.com/9.x/croodles-neutral/svg?seed=Mochi', label: 'Cat' },
-    { url: 'https://api.dicebear.com/9.x/croodles-neutral/svg?seed=Luna', label: 'Bunny' },
-    { url: 'https://api.dicebear.com/9.x/croodles-neutral/svg?seed=Kodama', label: 'Bear' },
-    { url: 'https://api.dicebear.com/9.x/croodles-neutral/svg?seed=Yuki', label: 'Panda' },
-    { url: 'https://api.dicebear.com/9.x/croodles-neutral/svg?seed=Hoshi', label: 'Wolf' },
-    { url: 'https://api.dicebear.com/9.x/croodles-neutral/svg?seed=Tanuki', label: 'Raccoon' },
-    { url: 'https://api.dicebear.com/9.x/croodles-neutral/svg?seed=Akiko', label: 'Deer' },
-];
 
 const getStyles = (theme) => ({
     cyberpunk: {
@@ -115,8 +105,6 @@ const SettingsPage = () => {
 
     const [username, setUsername] = useState('');
     const [displayName, setDisplayName] = useState('');
-    const [avatarIndex, setAvatarIndex] = useState(0);
-    const [hoveredAvatar, setHoveredAvatar] = useState(null);
     const [oldPassword, setOldPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [message, setMessage] = useState({ text: '', type: '' });
@@ -129,7 +117,6 @@ const SettingsPage = () => {
         if (user) {
             setUsername(user.username || '');
             setDisplayName(user.profile?.display_name || '');
-            setAvatarIndex(user.profile?.avatar_index || 0);
         }
     }, [user]);
 
@@ -151,7 +138,7 @@ const SettingsPage = () => {
                 fetch(`${API_URL}/profile/`, {
                     method: 'PATCH',
                     headers: { Authorization: `Token ${token}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ display_name: displayName, avatar_index: avatarIndex }),
+                    body: JSON.stringify({ display_name: displayName }),
                 }),
             ]);
             if (uRes.ok && pRes.ok) {
@@ -218,45 +205,6 @@ const SettingsPage = () => {
                                 className={inputClass} placeholder="Tu nombre público..." />
                         </div>
 
-                        {/* Avatar selector */}
-                        <div>
-                            <label className={labelClass}>Avatar Animal</label>
-                            <div className="grid grid-cols-4 gap-2">
-                                {AVATARS.map((av, i) => (
-                                    <button key={i} type="button"
-                                        onClick={() => setAvatarIndex(i)}
-                                        onMouseEnter={() => setHoveredAvatar(i)}
-                                        onMouseLeave={() => setHoveredAvatar(null)}
-                                        className={`relative flex flex-col items-center gap-1 p-1.5 rounded-xl transition-all border-2 group
-                                            ${avatarIndex === i
-                                                ? (theme === 'cyberpunk' ? 'border-cyber-accent bg-cyber-accent/10 scale-110' :
-                                                    theme === 'paper' ? 'border-paper-red bg-paper-highlight scale-110' :
-                                                        theme === 'dark' ? 'border-dark-primary bg-dark-primary/10 scale-110' :
-                                                            'border-sakura-deep bg-sakura-blossom/20 scale-110')
-                                                : 'border-transparent opacity-60 hover:opacity-100 hover:scale-105'
-                                            }`}>
-                                        <img
-                                            src={av.url}
-                                            alt={av.label}
-                                            className="w-12 h-12 object-contain transition-all"
-                                            style={{
-                                                animation: hoveredAvatar === i
-                                                    ? 'wiggle 0.4s ease-in-out 3'
-                                                    : avatarIndex === i
-                                                        ? 'float 2.5s ease-in-out infinite'
-                                                        : 'none'
-                                            }}
-                                        />
-                                        <span className={`text-xs font-medium ${s.label}`}>{av.label}</span>
-                                        {avatarIndex === i && (
-                                            <span className="absolute -top-1 -right-1 text-xs">
-                                                {theme === 'sakura' ? '🌸' : '✓'}
-                                            </span>
-                                        )}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
 
                         <button type="submit" disabled={updating}
                             className={`w-full py-2.5 text-sm transition-all disabled:opacity-50 ${s.btnPrimary}`}>
