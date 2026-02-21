@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-    Plus, Search, FileText, Trash2, Edit3, Save, X, Tag, ArrowLeft
+    Plus, Search, FileText, Trash2, Tag, ArrowLeft
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { api } from '../services/api';
+import TiptapEditor from '../components/TiptapEditor';
 
 const NOTE_TYPES = ['Personal', 'Clase', 'Trabajo', 'Ideas', 'Otro'];
 
@@ -54,7 +55,7 @@ export default function NotesView() {
     const [search, setSearch] = useState('');
     const [filterType, setFilterType] = useState('Todos');
     const [selectedNote, setSelectedNote] = useState(null);
-    const [isEditing, setIsEditing] = useState(false);
+    const [isCreatingNote, setIsCreatingNote] = useState(false);
 
     const [formTitle, setFormTitle] = useState('');
     const [formContent, setFormContent] = useState('');
@@ -164,6 +165,50 @@ export default function NotesView() {
         catch (e) { console.error(e); } finally { setLoading(false); }
     }, []);
 
+    const stateRef = useRef({ title: '', content: '', type: 'Personal', id: null, saving: false });
+    useEffect(() => {
+        stateRef.current = { title: formTitle, content: formContent, type: formType, id: selectedNote?.id, saving };
+    }, [formTitle, formContent, formType, selectedNote, saving]);
+
+    // Debounced autosave on typing
+    useEffect(() => {
+        const timeout = setTimeout(() => {
+            const st = stateRef.current;
+            if (st.title.trim() && !st.saving) performAutoSave();
+        }, 1500); // Save 1.5 seconds after last keystroke
+        return () => clearTimeout(timeout);
+    }, [formTitle, formContent, formType]);
+
+    const performAutoSave = async () => {
+        const st = stateRef.current;
+        if (!st.title.trim() || st.saving) return; // Must have title
+        setSaving(true);
+        st.saving = true;
+        try {
+            const payload = { title: st.title.trim(), content: st.content, note_type: st.type };
+            if (st.id) {
+                const updated = await api.patch(`/notes/${st.id}/`, payload);
+                setNotes(prev => prev.map(n => n.id === updated.id ? updated : n));
+            } else {
+                const created = await api.post('/notes/', payload);
+                st.id = created.id;
+                setSelectedNote(created);
+                setNotes(prev => [created, ...prev]);
+                fetchNotes(); // ensure state matches server nicely
+            }
+        } catch (e) { console.error("AutoSave error:", e); }
+        finally { setSaving(false); st.saving = false; }
+    };
+
+    useEffect(() => {
+        const handleVisibility = () => { if (document.hidden) performAutoSave(); };
+        document.addEventListener('visibilitychange', handleVisibility);
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibility);
+            performAutoSave();
+        };
+    }, []);
+
     useEffect(() => { fetchNotes(); }, [fetchNotes]);
     useEffect(() => { setConfirmDelete(false); }, [selectedNote]);
 
@@ -173,41 +218,32 @@ export default function NotesView() {
         return matchType && (!q || n.title.toLowerCase().includes(q) || (n.content || '').toLowerCase().includes(q));
     });
 
-    const openNew = () => { setSelectedNote(null); setFormTitle(''); setFormContent(''); setFormType('Personal'); setIsEditing(true); };
-    const openNote = (n) => { setSelectedNote(n); setFormTitle(n.title); setFormContent(n.content || ''); setFormType(n.note_type); setIsEditing(false); };
-    const cancelEdit = () => {
-        if (selectedNote) { setFormTitle(selectedNote.title); setFormContent(selectedNote.content || ''); setFormType(selectedNote.note_type); setIsEditing(false); }
-        else { setIsEditing(false); }
+    const handleSwitchNote = async (n) => {
+        const isCurrentlyOpen = selectedNote || isCreatingNote;
+        if (isCurrentlyOpen) {
+            await performAutoSave();
+            fetchNotes(); // refresh list with saved note
+        }
+        if (n) {
+            setSelectedNote(n); setFormTitle(n.title); setFormContent(n.content || ''); setFormType(n.note_type); setIsCreatingNote(false);
+        } else {
+            setSelectedNote(null); setFormTitle(''); setFormContent(''); setFormType('Personal'); setIsCreatingNote(true);
+        }
     };
 
-    const saveNote = async () => {
-        if (!formTitle.trim()) return;
-        setSaving(true);
-        try {
-            const payload = { title: formTitle.trim(), content: formContent, note_type: formType };
-            if (selectedNote) {
-                const updated = await api.patch(`/notes/${selectedNote.id}/`, payload);
-                setNotes(prev => prev.map(n => n.id === updated.id ? updated : n));
-                setSelectedNote(updated);
-            } else {
-                const created = await api.post('/notes/', payload);
-                setNotes(prev => [created, ...prev]);
-                setSelectedNote(created);
-            }
-            setIsEditing(false);
-        } catch (e) { console.error(e); } finally { setSaving(false); }
-    };
+    const openNew = () => handleSwitchNote(null);
+    const openNote = (n) => handleSwitchNote(n);
 
     const deleteNote = async () => {
         if (!confirmDelete) { setConfirmDelete(true); return; }
         try {
             await api.delete(`/notes/${selectedNote.id}/`);
             setNotes(prev => prev.filter(n => n.id !== selectedNote.id));
-            setSelectedNote(null); setIsEditing(false);
+            setSelectedNote(null); setIsCreatingNote(false);
         } catch (e) { console.error(e); } finally { setConfirmDelete(false); }
     };
 
-    const isDetailOpen = selectedNote || isEditing;
+    const isDetailOpen = selectedNote || isCreatingNote;
 
     return (
         <div className={`flex h-full min-h-0 overflow-hidden ${rootCls}`}>
@@ -290,7 +326,7 @@ export default function NotesView() {
 
             {/* ── Right Panel ── */}
             <main className={`flex-1 flex flex-col overflow-hidden ${mainBg} ${!isDetailOpen ? 'hidden md:flex' : ''}`}>
-                {!selectedNote && !isEditing ? (
+                {!selectedNote && !isCreatingNote ? (
                     /* Empty state */
                     <div className="flex-1 flex flex-col items-center justify-center gap-5 text-center px-8">
                         <FileText size={64} className={emptyIcon} />
@@ -307,39 +343,15 @@ export default function NotesView() {
                         {/* Toolbar */}
                         <div className={`flex items-center justify-between px-4 md:px-8 py-3 border-b ${divider}`}>
                             <div className="flex items-center gap-2">
-                                {!isEditing && (
-                                    <button onClick={() => setSelectedNote(null)} className={`md:hidden p-1.5 mr-1 rounded ${btnSecondary}`}>
-                                        <ArrowLeft size={16} />
-                                    </button>
-                                )}
-                                {isEditing ? (
-                                    <>
-                                        <button id="notes-save-btn" onClick={saveNote} disabled={saving || !formTitle.trim()}
-                                            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg ${btnPrimary} disabled:opacity-40`}>
-                                            <Save size={12} />{saving ? 'Guardando...' : 'Guardar'}
-                                        </button>
-                                        <button id="notes-cancel-btn" onClick={cancelEdit}
-                                            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg ${btnSecondary}`}>
-                                            <X size={12} /> Cancelar
-                                        </button>
-                                    </>
-                                ) : (
-                                    <>
-                                        <button id="notes-edit-btn" onClick={() => setIsEditing(true)}
-                                            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg ${btnSecondary}`}>
-                                            <Edit3 size={12} /> Editar
-                                        </button>
-                                        <button id="notes-delete-btn" onClick={deleteNote}
-                                            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg ${btnDanger}`}>
-                                            <Trash2 size={12} />
-                                            {confirmDelete ? '¿Confirmar?' : 'Eliminar'}
-                                        </button>
-                                    </>
-                                )}
+                                <button onClick={() => { setSelectedNote(null); setIsCreatingNote(false); }} className={`md:hidden p-1.5 mr-1 rounded ${btnSecondary}`}>
+                                    <ArrowLeft size={16} />
+                                </button>
+                                <span className={`text-xs ${muted}`}>
+                                    {saving ? 'Guardando...' : 'Guardado automático'}
+                                </span>
                             </div>
 
-                            {/* Type selector */}
-                            {isEditing && (
+                            <div className="flex items-center gap-3">
                                 <div className="flex items-center gap-1.5 flex-wrap">
                                     <Tag size={12} className={muted} />
                                     {NOTE_TYPES.map(t => {
@@ -351,44 +363,38 @@ export default function NotesView() {
                                         );
                                     })}
                                 </div>
-                            )}
-                            {!isEditing && selectedNote && (
-                                <div className="flex items-center gap-2">
-                                    <span className={`flex items-center gap-1.5 px-2 py-0.5 text-xs rounded-full border font-medium
-                                        ${t4(theme, NOTE_TYPE_COLORS[selectedNote.note_type] || NOTE_TYPE_COLORS['Otro'])}`}>
-                                        <Tag size={10} />{selectedNote.note_type}
-                                    </span>
-                                    <span className={`text-xs ${muted}`}>{fmtDate(selectedNote.updated_at)}</span>
-                                </div>
-                            )}
+                                {selectedNote && (
+                                    <>
+                                        <div className="flex items-center gap-2 ml-2">
+                                            <span className={`text-xs ${muted}`}>{fmtDate(selectedNote.updated_at)}</span>
+                                        </div>
+                                        <button onClick={deleteNote}
+                                            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg ${btnDanger}`}>
+                                            <Trash2 size={12} />
+                                            {confirmDelete ? '¿Confirmar?' : 'Eliminar'}
+                                        </button>
+                                    </>
+                                )}
+                            </div>
                         </div>
 
                         {/* Content area — Notion style */}
                         <div className={`flex-1 overflow-y-auto px-6 md:px-16 py-6 md:py-10 ${scrollCls}`}>
-                            <div className="max-w-2xl mx-auto">
-                                {isEditing ? (
-                                    <>
-                                        <input id="notes-title-input" type="text" value={formTitle} onChange={e => setFormTitle(e.target.value)}
-                                            placeholder="Título"
-                                            className={`w-full text-3xl font-bold bg-transparent outline-none mb-6 leading-tight ${titleCls} ${titlePlaceholder}`} />
-                                        <textarea id="notes-content-input" value={formContent} onChange={e => setFormContent(e.target.value)}
-                                            placeholder="Escribe algo..."
-                                            rows={16}
-                                            className={`w-full bg-transparent outline-none text-sm leading-7 resize-none ${contentCls} ${contentPlaceholder} ${scrollCls}`} />
-                                    </>
-                                ) : (
-                                    <>
-                                        <h1 className={`text-3xl font-bold mb-6 leading-tight ${titleCls}`}>
-                                            {selectedNote?.title}
-                                        </h1>
-                                        <div className={`text-sm leading-7 whitespace-pre-wrap ${contentCls}`}>
-                                            {selectedNote?.content
-                                                ? selectedNote.content
-                                                : <span className={muted}>Página en blanco. Haz clic en Editar para añadir contenido.</span>
-                                            }
-                                        </div>
-                                    </>
-                                )}
+                            <div className="max-w-2xl mx-auto h-full flex flex-col">
+                                <input id="notes-title-input" type="text" value={formTitle} onChange={e => setFormTitle(e.target.value)}
+                                    onKeyDown={e => { if (e.ctrlKey && e.key.toLowerCase() === 'g') { e.preventDefault(); performAutoSave(); } }}
+                                    placeholder="Título"
+                                    className={`w-full text-3xl font-bold bg-transparent outline-none mb-6 leading-tight ${titleCls} ${titlePlaceholder}`} />
+
+                                <div className="flex-1 min-h-0">
+                                    <TiptapEditor
+                                        key={selectedNote?.id || 'new'}
+                                        initialContent={formContent}
+                                        onUpdate={setFormContent}
+                                        onSave={performAutoSave}
+                                        theme={theme}
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>

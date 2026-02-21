@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
     Globe, Plus, Users, FolderOpen, FileText, CheckSquare,
     ChevronRight, Crown, UserMinus, UserPlus, X, Check,
@@ -10,6 +10,7 @@ import { useUser } from '../context/UserContext';
 import { api } from '../services/api';
 import { Avatar } from '../components/Navbar';
 import ProgressBar from '../components/ProgressBar';
+import TiptapEditor from '../components/TiptapEditor';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const fmtDate = (d) => new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -212,27 +213,130 @@ const Modal = ({ title, onClose, onSave, theme, primaryText = 'Crear', fields })
 };
 
 // ── Project Detail ────────────────────────────────────────────────────────────
-const ProjectDetail = ({ project, theme, onUpdate, onClose }) => {
+const ProjectDetail = ({ project, theme, onUpdate, onClose, selectedNote, setSelectedNote, isCreatingNote, setIsCreatingNote }) => {
     const s = useStyles(theme);
-    const [tab, setTab] = useState('tasks');
+    const [tab, setTab] = useState((selectedNote || isCreatingNote) ? 'notes' : 'tasks');
 
     const [newTask, setNewTask] = useState('');
     const [savingTask, setSavingTask] = useState(false);
-    const [selectedNote, setSelectedNote] = useState(null);
-    const [noteTitle, setNoteTitle] = useState('');
-    const [noteContent, setNoteContent] = useState('');
-    const [editingNote, setEditingNote] = useState(false);
+    const [noteTitle, setNoteTitle] = useState(selectedNote?.title || '');
+    const [noteContent, setNoteContent] = useState(selectedNote?.content || '');
     const [savingNote, setSavingNote] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState(false);
+
+    // Track local active context
+    const [activeNoteId, setActiveNoteId] = useState(selectedNote?.id);
+    const [activeIsCreating, setActiveIsCreating] = useState(isCreatingNote);
 
     const tasks = project.shared_tasks || [];
     const notes = project.shared_notes || [];
     const done = tasks.filter(t => t.completed).length;
     const progress = tasks.length === 0 ? 0 : Math.round((done / tasks.length) * 100);
 
-    const openNote = (n) => { setSelectedNote(n); setNoteTitle(n.title); setNoteContent(n.content || ''); setEditingNote(false); setConfirmDelete(false); };
-    const newNote = () => { setSelectedNote(null); setNoteTitle(''); setNoteContent(''); setEditingNote(true); };
-    const cancelNote = () => { if (selectedNote) { setNoteTitle(selectedNote.title); setNoteContent(selectedNote.content || ''); setEditingNote(false); } else setEditingNote(false); };
+    const activeDataRef = useRef({ title: noteTitle, content: noteContent, id: activeNoteId, project: project.id });
+
+    // Keep active data updated dynamically
+    useEffect(() => {
+        activeDataRef.current = { title: noteTitle, content: noteContent, id: activeNoteId, project: project.id };
+    }, [noteTitle, noteContent, activeNoteId, project.id]);
+
+    // Debounced autosave on typing
+    useEffect(() => {
+        const st = activeDataRef.current;
+        if (!st.title.trim()) return;
+
+        const timeout = setTimeout(() => {
+            if (!savingNote) performAutoSave();
+        }, 1500); // Save 1.5 seconds after last keystroke
+
+        return () => clearTimeout(timeout);
+    }, [noteTitle, noteContent]); // Trigger whenever title or content changes
+
+    const performAutoSaveHelper = async (st) => {
+        if (!st.title.trim()) return;
+        try {
+            const payload = { title: st.title.trim(), content: st.content, project: st.project };
+            if (st.id) {
+                await api.patch(`/shared-notes/${st.id}/`, payload);
+                onUpdate(true);
+            } else {
+                await api.post('/shared-notes/', payload);
+                onUpdate(true);
+            }
+        } catch (e) { console.error("AutoSave error:", e); }
+    };
+
+    const performAutoSave = async () => {
+        const st = activeDataRef.current;
+        if (!st.title.trim() || savingNote) return;
+        setSavingNote(true);
+        try {
+            const payload = { title: st.title.trim(), content: st.content, project: st.project };
+            if (st.id) {
+                await api.patch(`/shared-notes/${st.id}/`, payload);
+                onUpdate(true);
+            } else {
+                const res = await api.post('/shared-notes/', payload);
+                st.id = res.id;
+                setActiveNoteId(res.id);
+                setSelectedNote(res);
+                setIsCreatingNote(false);
+                onUpdate(true);
+            }
+        } catch (e) { console.error("AutoSave error:", e); }
+        finally { setSavingNote(false); }
+    };
+
+    useEffect(() => {
+        if (selectedNote?.id !== activeNoteId || isCreatingNote !== activeIsCreating || project.id !== activeDataRef.current.project) {
+
+            // If changing context, save the previous one.
+            if (activeDataRef.current.id || activeDataRef.current.title.trim()) {
+                performAutoSaveHelper(activeDataRef.current);
+            }
+
+            // Apply new context!
+            setNoteTitle(selectedNote?.title || '');
+            setNoteContent(selectedNote?.content || '');
+            setConfirmDelete(false);
+            setActiveNoteId(selectedNote?.id);
+            setActiveIsCreating(isCreatingNote);
+            if (selectedNote || isCreatingNote) {
+                setTab('notes');
+            } else if (project.id !== activeDataRef.current.project) {
+                setTab('tasks');
+            }
+        }
+    }, [selectedNote, isCreatingNote, activeNoteId, activeIsCreating, project.id]);
+
+    useEffect(() => {
+        const handleVisibility = () => { if (document.hidden) performAutoSave(); };
+        document.addEventListener('visibilitychange', handleVisibility);
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibility);
+            // Also need to save on unmount!
+            performAutoSaveHelper(activeDataRef.current);
+        };
+    }, []);
+
+    const handleSwitchNote = async (n) => {
+        // Enforce save logic locally before navigating inside ProjectDetail
+        await performAutoSaveHelper(activeDataRef.current);
+        if (n) {
+            setSelectedNote(n); setIsCreatingNote(false);
+        } else {
+            setSelectedNote(null); setIsCreatingNote(true);
+        }
+    };
+
+    const handleCloseNote = async () => {
+        await performAutoSaveHelper(activeDataRef.current);
+        setSelectedNote(null);
+        setIsCreatingNote(false);
+    };
+
+    const openNote = (n) => handleSwitchNote(n);
+    const newNote = () => handleSwitchNote(null);
 
     const addTask = async (e) => {
         e.preventDefault();
@@ -252,85 +356,85 @@ const ProjectDetail = ({ project, theme, onUpdate, onClose }) => {
         catch (e) { console.error(e); }
     };
 
-    const saveNote = async () => {
-        if (!noteTitle.trim()) return;
-        setSavingNote(true);
-        try {
-            const payload = { title: noteTitle.trim(), content: noteContent, project: project.id };
-            if (selectedNote) await api.patch(`/shared-notes/${selectedNote.id}/`, payload);
-            else await api.post('/shared-notes/', payload);
-            setEditingNote(false); onUpdate();
-        } catch (e) { console.error(e); } finally { setSavingNote(false); }
-    };
-
     const deleteNote = async () => {
         if (!confirmDelete) { setConfirmDelete(true); return; }
-        try { await api.delete(`/shared-notes/${selectedNote.id}/`); setSelectedNote(null); setEditingNote(false); onUpdate(); }
+        try { await api.delete(`/shared-notes/${selectedNote.id}/`); setSelectedNote(null); setIsCreatingNote(false); onUpdate(); }
         catch (e) { console.error(e); } finally { setConfirmDelete(false); }
     };
 
-    useEffect(() => { if (tab === 'notes' && notes.length > 0 && !selectedNote) openNote(notes[0]); }, [tab]);
+    // useEffect automatically opening notes[0] was removed.
+
+    const handleTabChange = async (newTab) => {
+        const isCurrentlyOpen = selectedNote || isCreatingNote;
+        if (tab === 'notes' && newTab !== 'notes' && isCurrentlyOpen) {
+            await performAutoSave();
+            onUpdate();
+        }
+        setTab(newTab);
+    };
 
     return (
         <div className={`flex-1 flex flex-col min-w-0 overflow-hidden animate-in fade-in slide-in-from-right-2 duration-200 ${s.mainBg}`}>
 
             {/* Breadcrumb / header */}
-            <div className={`flex items-center justify-between px-4 md:px-8 py-4 border-b ${s.divider}`}>
-                <div className="flex items-center gap-2 min-w-0">
-                    <button onClick={onClose} className={`p-1.5 rounded text-sm ${s.breadBtn} transition-all`}>
-                        <ArrowLeft size={16} />
-                    </button>
-                    <ChevronRight size={14} className={`hidden md:block ${s.muted}`} />
-                    <FolderOpen size={16} className={`hidden md:block ${s.subtle}`} />
-                    <span className={`text-sm font-medium truncate ${s.text}`}>{project.name}</span>
-                </div>
-                <button onClick={onUpdate} className={`p-1.5 rounded ${s.refreshBtn} transition-all`}>
-                    <RefreshCw size={14} />
-                </button>
-            </div>
-
-            {/* Page header (Notion style) */}
-            <div className="px-6 md:px-16 pt-8 md:pt-12 pb-6">
-                <div className="flex items-center gap-3 mb-2">
-                    <FolderOpen size={36} className={s.titleIcon} />
-                </div>
-                <h1 className={`text-4xl font-bold tracking-tight mb-2 ${s.titleCls}`}>
-                    {project.name}
-                </h1>
-                {project.description && (
-                    <p className={`text-base mt-1 ${s.muted}`}>{project.description}</p>
-                )}
-                <div className={`flex items-center gap-6 mt-4 text-sm ${s.muted}`}>
-                    <span>Creado por <span className="font-medium">{project.created_by_name}</span></span>
-                    <span>·</span>
-                    <div className="flex items-center gap-2">
-                        <span>{progress}% completado</span>
-                        <div className="w-24"><ProgressBar progress={progress} /></div>
+            {!(selectedNote || isCreatingNote) && (
+                <>
+                    <div className={`flex items-center justify-between px-4 md:px-8 py-4 border-b ${s.divider}`}>
+                        <div className="flex items-center gap-2 min-w-0">
+                            <button onClick={onClose} className={`p-1.5 rounded text-sm ${s.breadBtn} transition-all`}>
+                                <ArrowLeft size={16} />
+                            </button>
+                            <ChevronRight size={14} className={`hidden md:block ${s.muted}`} />
+                            <FolderOpen size={16} className={`hidden md:block ${s.subtle}`} />
+                            <span className={`text-sm font-medium truncate ${s.text}`}>{project.name}</span>
+                        </div>
+                        <button onClick={onUpdate} className={`p-1.5 rounded ${s.refreshBtn} transition-all`}>
+                            <RefreshCw size={14} />
+                        </button>
                     </div>
-                </div>
-            </div>
 
-            {/* Tabs */}
-            <div className={`flex gap-0 border-b ${s.divider} px-6 md:px-16 overflow-x-auto`}>
-                {[
-                    { key: 'tasks', label: 'Tareas', Icon: ClipboardList, count: tasks.length },
-                    { key: 'notes', label: 'Notas', Icon: BookOpen, count: notes.length },
-                ].map(({ key, label, Icon: TabIcon, count }) => (
-                    <button key={key} onClick={() => setTab(key)}
-                        className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 -mb-px transition-all
+                    {/* Page header (Notion style) */}
+                    <div className="px-6 md:px-16 pt-8 md:pt-12 pb-6">
+                        <div className="flex items-center gap-3 mb-2">
+                            <FolderOpen size={36} className={s.titleIcon} />
+                        </div>
+                        <h1 className={`text-4xl font-bold tracking-tight mb-2 ${s.titleCls}`}>
+                            {project.name}
+                        </h1>
+                        {project.description && (
+                            <p className={`text-base mt-1 ${s.muted}`}>{project.description}</p>
+                        )}
+                        <div className={`flex items-center gap-6 mt-4 text-sm ${s.muted}`}>
+                            <span>Creado por <span className="font-medium">{project.created_by_name}</span></span>
+                            <span>·</span>
+                            <div className="flex items-center gap-2">
+                                <span>{progress}% completado</span>
+                                <div className="w-24"><ProgressBar progress={progress} /></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Tabs */}
+                    <div className={`flex gap-0 border-b ${s.divider} px-6 md:px-16 overflow-x-auto`}>
+                        {[
+                            { key: 'tasks', label: 'Tareas', Icon: ClipboardList, count: tasks.length },
+                            { key: 'notes', label: 'Notas', Icon: BookOpen, count: notes.length },
+                        ].map(({ key, label, Icon: TabIcon, count }) => (
+                            <button key={key} onClick={() => handleTabChange(key)}
+                                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 -mb-px transition-all
                             ${tab === key ? s.tabActive : s.tabDefault}`}>
-                        <TabIcon size={15} />
-                        {label}
-                        <span className={`text-xs px-1.5 py-0.5 rounded-full font-normal
+                                <TabIcon size={15} />
+                                {label}
+                                <span className={`text-xs px-1.5 py-0.5 rounded-full font-normal
                             ${tab === key ? s.tabBadgeActive : s.tabBadgeDefault}`}>{count}</span>
-                    </button>
-                ))}
-            </div>
+                            </button>
+                        ))}
+                    </div>
+                </>)}
 
             {/* Tab content */}
-            <div className="flex-1 overflow-hidden flex">
-
-                {tab === 'tasks' ? (
+            <div className="flex-1 overflow-hidden relative">
+                {(tab === 'tasks' && !selectedNote && !isCreatingNote) ? (
                     // ── Tasks ──
                     <div className={`flex-1 overflow-y-auto px-6 md:px-16 py-8 ${s.scrollCls}`}>
                         <div className="max-w-2xl space-y-1">
@@ -377,118 +481,100 @@ const ProjectDetail = ({ project, theme, onUpdate, onClose }) => {
                 ) : (
                     // ── Notes ──
                     <div className="flex-1 flex overflow-hidden">
-                        {/* Notes sidebar */}
-                        <div className={`w-full md:w-56 flex-shrink-0 flex flex-col border-r ${s.divider} ${s.panelBg} overflow-hidden ${selectedNote || editingNote ? 'hidden md:flex' : ''}`}>
-                            <div className={`px-3 py-2.5 flex items-center justify-between border-b ${s.divider}`}>
-                                <span className={`text-xs font-semibold uppercase tracking-wider ${s.muted}`}>Páginas</span>
-                                <button onClick={newNote}
-                                    className={`p-1 rounded ${s.plusBtnCls} transition-all`}>
-                                    <Plus size={14} />
-                                </button>
-                            </div>
-                            <div className={`flex-1 overflow-y-auto py-1 ${s.scrollCls}`}>
-                                {notes.length === 0 && (
-                                    <p className={`px-3 py-3 text-xs ${s.muted}`}>Sin notas aún</p>
-                                )}
-                                {notes.map(note => (
-                                    <button key={note.id} onClick={() => openNote(note)}
-                                        className={`w-full text-left flex items-center gap-2 px-3 py-2 rounded-md mx-1 my-0.5 transition-all group
-                                            ${selectedNote?.id === note.id ? s.noteItemActive : s.noteItemDefault}`}
-                                        style={{ width: 'calc(100% - 8px)' }}>
-                                        <FileText size={13} className="flex-shrink-0 opacity-60" />
-                                        <span className="text-xs font-medium truncate">{note.title}</span>
-                                    </button>
-                                ))}
-                            </div>
-                            <div className={`px-3 py-2 border-t ${s.divider}`}>
-                                <button onClick={newNote}
-                                    className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-all ${s.noteSideFooter}`}>
-                                    <Plus size={13} /> Nueva página
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Note editor/viewer */}
-                        <div className={`flex-1 flex flex-col overflow-hidden ${s.mainBg} ${!(selectedNote || editingNote) ? 'hidden md:flex' : ''}`}>
-                            {!selectedNote && !editingNote ? (
-                                <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-8">
-                                    <FileText size={48} className={s.emptyIcon} />
-                                    <div>
-                                        <p className={`font-semibold ${s.subtle}`}>Selecciona una página</p>
-                                        <p className={`text-sm mt-1 ${s.muted}`}>o crea una nueva</p>
-                                    </div>
-                                    <button onClick={newNote} className={`px-4 py-2 text-sm rounded-lg ${s.btnPrimary}`}>
-                                        + Nueva página
-                                    </button>
-                                </div>
-                            ) : (
-                                <div className="flex-1 flex flex-col overflow-hidden">
-                                    {/* Note toolbar */}
-                                    <div className={`flex items-center justify-between px-4 md:px-8 py-3 border-b ${s.divider}`}>
-                                        <div className="flex items-center gap-2">
-                                            {!editingNote && (
-                                                <button onClick={() => setSelectedNote(null)} className={`md:hidden p-1.5 mr-1 rounded ${s.breadBtn}`}>
-                                                    <ArrowLeft size={16} />
-                                                </button>
-                                            )}
-                                            {editingNote ? (
-                                                <>
-                                                    <button onClick={saveNote} disabled={savingNote || !noteTitle.trim()}
-                                                        className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg ${s.btnPrimary} disabled:opacity-40`}>
-                                                        <Save size={12} />{savingNote ? 'Guardando...' : 'Guardar'}
-                                                    </button>
-                                                    <button onClick={cancelNote} className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg ${s.btnSecondary}`}>
-                                                        Cancelar
-                                                    </button>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <button onClick={() => setEditingNote(true)}
-                                                        className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg ${s.btnSecondary}`}>
-                                                        <Edit3 size={12} /> Editar
-                                                    </button>
-                                                    <button onClick={deleteNote}
-                                                        className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg ${s.btnDanger}`}>
-                                                        <Trash2 size={12} />
-                                                        {confirmDelete ? '¿Confirmar?' : 'Eliminar'}
-                                                    </button>
-                                                </>
-                                            )}
+                        {!selectedNote && !isCreatingNote ? (
+                            // Notes list View
+                            <div className={`flex-1 overflow-y-auto px-6 md:px-16 py-8 ${s.scrollCls}`}>
+                                <div className="max-w-4xl mx-auto">
+                                    <div className="flex items-center justify-between mb-8">
+                                        <div className="flex items-center gap-3">
+                                            <BookOpen size={24} className={s.iconAccent} />
+                                            <h2 className={`text-2xl font-bold tracking-tight ${s.text}`}>Páginas</h2>
                                         </div>
-                                        {selectedNote && !editingNote && (
+                                        <button onClick={newNote} className={`flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg ${s.btnPrimary}`}>
+                                            <Plus size={15} /> Nueva página
+                                        </button>
+                                    </div>
+
+                                    {notes.length === 0 ? (
+                                        <div className={`flex flex-col items-center justify-center gap-4 text-center py-20 rounded-xl border-2 border-dashed ${s.emptyBorder}`}>
+                                            <FileText size={48} className={`opacity-40 ${s.emptyIcon}`} />
+                                            <div>
+                                                <p className={`font-semibold ${s.subtle}`}>Sin páginas</p>
+                                                <p className={`text-sm mt-1 ${s.muted}`}>Crea la primera página en este proyecto</p>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                            {notes.map(note => (
+                                                <button key={note.id} onClick={() => openNote(note)}
+                                                    className={`text-left p-5 rounded-xl border transition-all group hover:-translate-y-0.5 hover:shadow-md ${s.cardBg} ${s.cardHover}`}>
+                                                    <div className="flex items-center gap-3 mb-3">
+                                                        <FileText size={18} className={s.iconMuted} />
+                                                        <h3 className={`font-semibold text-base truncate ${s.text}`}>{note.title}</h3>
+                                                    </div>
+                                                    <p className={`text-sm ${s.muted} line-clamp-3 min-h-[60px]`}>
+                                                        {note.content ? note.content.replace(/<[^>]+>/g, '').substring(0, 100) : 'Sin contenido...'}
+                                                    </p>
+                                                    <div className={`mt-4 pt-3 border-t ${s.divider} flex items-center justify-between text-xs ${s.muted}`}>
+                                                        <span>{note.created_by_name}</span>
+                                                        <span>{fmtDate(note.updated_at)}</span>
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ) : (
+                            // Note editor/viewer
+                            <div className={`flex-1 flex flex-col overflow-hidden ${s.mainBg}`}>
+                                {/* Note toolbar */}
+                                <div className={`flex items-center justify-between px-4 md:px-8 py-3 border-b ${s.divider}`}>
+                                    <div className="flex items-center gap-2">
+                                        <button onClick={handleCloseNote} className={`p-1.5 mr-1 rounded ${s.breadBtn}`}>
+                                            <ArrowLeft size={16} />
+                                        </button>
+                                        <span className={`text-xs ${s.muted}`}>
+                                            {savingNote ? 'Guardando...' : 'Guardado automático'}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        {selectedNote && (
                                             <span className={`text-xs ${s.muted}`}>
                                                 por {selectedNote.created_by_name} · {fmtDate(selectedNote.updated_at)}
                                             </span>
                                         )}
+                                        {selectedNote && (
+                                            <button onClick={deleteNote}
+                                                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg ${s.btnDanger}`}>
+                                                <Trash2 size={12} />
+                                                {confirmDelete ? '¿Confirmar?' : 'Eliminar'}
+                                            </button>
+                                        )}
                                     </div>
+                                </div>
 
-                                    {/* Note content */}
-                                    <div className={`flex-1 overflow-y-auto px-6 md:px-16 py-6 md:py-10 ${s.scrollCls}`}>
-                                        <div className="max-w-2xl mx-auto">
-                                            {editingNote ? (
-                                                <>
-                                                    <input value={noteTitle} onChange={e => setNoteTitle(e.target.value)}
-                                                        placeholder="Título"
-                                                        className={`w-full text-3xl font-bold bg-transparent outline-none mb-6 ${s.contentTitle}`} />
-                                                    <textarea value={noteContent} onChange={e => setNoteContent(e.target.value)}
-                                                        placeholder="Escribe algo..."
-                                                        className={`w-full h-64 bg-transparent outline-none text-sm leading-7 resize-none ${s.contentBody} ${s.scrollCls}`} />
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <h1 className={`text-3xl font-bold mb-6 ${s.titleCls}`}>
-                                                        {selectedNote?.title}
-                                                    </h1>
-                                                    <div className={`text-sm leading-7 whitespace-pre-wrap ${s.contentView}`}>
-                                                        {selectedNote?.content || <span className={s.muted}>Página en blanco. Haz clic en Editar para añadir contenido.</span>}
-                                                    </div>
-                                                </>
-                                            )}
+                                {/* Note content */}
+                                <div className={`flex-1 overflow-y-auto px-6 md:px-16 py-6 md:py-10 ${s.scrollCls}`}>
+                                    <div className="max-w-2xl mx-auto h-full flex flex-col">
+                                        <input value={noteTitle} onChange={e => setNoteTitle(e.target.value)}
+                                            onKeyDown={e => { if (e.ctrlKey && e.key.toLowerCase() === 'g') { e.preventDefault(); performAutoSave(); } }}
+                                            placeholder="Título"
+                                            className={`w-full text-3xl font-bold bg-transparent outline-none mb-6 ${s.contentTitle}`} />
+
+                                        <div className="flex-1 min-h-0">
+                                            <TiptapEditor
+                                                key={activeNoteId || 'new'}
+                                                initialContent={noteContent}
+                                                onUpdate={setNoteContent}
+                                                onSave={performAutoSave}
+                                                theme={theme}
+                                            />
                                         </div>
                                     </div>
                                 </div>
-                            )}
-                        </div>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
@@ -497,26 +583,34 @@ const ProjectDetail = ({ project, theme, onUpdate, onClose }) => {
 };
 
 // ── Community Panel ───────────────────────────────────────────────────────────
-const CommunityPanel = ({ community, currentUserId, theme, onUpdate, onCreateProject, onClose }) => {
+const CommunityPanel = ({ community, currentUserId, theme, onUpdate, onCreateProject, onClose, selectedProject, setSelectedProject, selectedNote, setSelectedNote, isCreatingNote, setIsCreatingNote }) => {
     const s = useStyles(theme);
     const [addInput, setAddInput] = useState('');
     const [addError, setAddError] = useState('');
     const [adding, setAdding] = useState(false);
-    const [selectedProject, setSelectedProject] = useState(null);
+
     const [projectData, setProjectData] = useState(null);
     const [loadingProject, setLoadingProject] = useState(false);
 
     const isOwner = community.owner === currentUserId;
 
-    const fetchProject = useCallback(async (id) => {
-        setLoadingProject(true);
+    const fetchProject = useCallback(async (id, silent = false) => {
+        if (!silent) setLoadingProject(true);
         try { const data = await api.get(`/shared-projects/${id}/`); setProjectData(data); }
-        catch (e) { console.error(e); } finally { setLoadingProject(false); }
+        catch (e) { console.error(e); } finally { if (!silent) setLoadingProject(false); }
     }, []);
 
-    const selectProject = async (p) => { setSelectedProject(p); setProjectData(null); await fetchProject(p.id); };
+    const selectProject = async (p) => { setSelectedProject(p); };
 
-    const handleUpdate = async () => { if (selectedProject) await fetchProject(selectedProject.id); onUpdate(); };
+    useEffect(() => {
+        if (selectedProject && selectedProject.id !== projectData?.id && !loadingProject) {
+            fetchProject(selectedProject.id);
+        } else if (!selectedProject) {
+            setProjectData(null);
+        }
+    }, [selectedProject, projectData, loadingProject, fetchProject]);
+
+    const handleUpdate = async (silent = false) => { if (selectedProject) await fetchProject(selectedProject.id, silent); onUpdate(silent); };
 
     const [addSuccess, setAddSuccess] = useState('');
     const [kickTarget, setKickTarget] = useState(null); // { username, displayName }
@@ -660,8 +754,8 @@ const CommunityPanel = ({ community, currentUserId, theme, onUpdate, onCreatePro
             );
         }
         if (projectData) {
-            return <ProjectDetail project={projectData} theme={theme}
-                onUpdate={handleUpdate} onClose={() => { setSelectedProject(null); setProjectData(null); }} />;
+            return <ProjectDetail key={projectData.id} project={projectData} theme={theme}
+                onUpdate={handleUpdate} onClose={() => { setSelectedProject(null); setProjectData(null); setSelectedNote(null); setIsCreatingNote(false); }} selectedNote={selectedNote} setSelectedNote={setSelectedNote} isCreatingNote={isCreatingNote} setIsCreatingNote={setIsCreatingNote} />;
         }
     }
 
@@ -811,6 +905,10 @@ export default function CommunityView() {
     const [selected, setSelected] = useState(null);
     const [modalCreate, setModalCreate] = useState(false);
     const [modalProject, setModalProject] = useState(null);
+    const [selectedProject, setSelectedProject] = useState(null);
+    const [selectedNote, setSelectedNote] = useState(null);
+    const [isCreatingNote, setIsCreatingNote] = useState(false);
+
 
     const fetchAll = useCallback(async (silent = false) => {
         if (!silent) setLoading(true);
@@ -888,12 +986,55 @@ export default function CommunityView() {
                             {communities.map(c => {
                                 const isActive = selected?.id === c.id;
                                 return (
-                                    <button key={c.id} onClick={() => setSelected(c)}
-                                        className={`w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm ${s.sidebarItem(isActive)}`}>
-                                        <Avatar name={c.name} size={20} theme={theme} />
-                                        <span className="truncate font-medium text-sm">{c.name}</span>
-                                        {c.owner === user?.id && <Crown size={10} className={`flex-shrink-0 ${s.crownCls}`} />}
-                                    </button>
+
+                                    <div key={c.id}>
+                                        <button onClick={() => { setSelected(c); setSelectedProject(null); setSelectedNote(null); setIsCreatingNote(false); }}
+                                            className={`w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm ${s.sidebarItem(isActive)}`}>
+                                            <Avatar name={c.name} size={20} theme={theme} />
+                                            <span className="truncate font-medium text-sm">{c.name}</span>
+
+                                            {c.owner === user?.id && <Crown size={10} className={`flex-shrink-0 ${s.crownCls}`} />}
+                                        </button>
+                                        {isActive && c.projects?.length > 0 && (
+                                            <div className="mt-1 mb-2 space-y-1">
+                                                {c.projects.map(p => (
+                                                    <div key={p.id} className="pl-4 border-l border-white/10 ml-5 py-0.5">
+
+                                                        <button
+                                                            onClick={() => { setSelectedProject(p); setSelectedNote(null); setIsCreatingNote(false); }}
+                                                            className={`w-full text-left flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors hover:text-white ${selectedProject?.id === p.id ? 'text-white font-medium bg-white/5' : s.muted}`}>
+                                                            <FolderOpen size={13} className={selectedProject?.id === p.id ? 'text-cyber-primary' : 'opacity-70'} />
+                                                            <span className="truncate">{p.name}</span>
+                                                        </button>
+                                                        {selectedProject?.id === p.id && (
+                                                            <div className="mt-1.5 flex flex-col gap-0.5 relative before:absolute before:left-[10px] before:top-0 before:bottom-3 before:w-px before:bg-white/10">
+                                                                <div className="pl-6 text-[9px] font-bold uppercase tracking-widest opacity-40 mb-1">Páginas</div>
+                                                                {(p.shared_notes || []).map(note => (
+                                                                    <button key={note.id} onClick={(e) => { e.stopPropagation(); setSelectedNote(note); setIsCreatingNote(false); setTimeout(() => document.querySelector('.tiptap-wrapper')?.scrollIntoView({ behavior: 'smooth' }), 50); }}
+                                                                        className={`w-full text-left flex items-center gap-2 pl-6 pr-2 py-1.5 rounded-md text-[11px] font-medium transition-all group ${selectedNote?.id === note.id ? 'bg-cyber-primary text-black' : 'text-cyber-secondary/70 hover:bg-cyber-primary/10 hover:text-cyber-secondary'}`}>
+                                                                        <FileText size={11} className={`flex-shrink-0 ${selectedNote?.id === note.id ? 'opacity-100' : 'opacity-60'}`} />
+                                                                        <span className="truncate">{note.title}</span>
+                                                                    </button>
+                                                                ))}
+                                                                <button onClick={(e) => { e.stopPropagation(); setSelectedNote(null); setIsCreatingNote(true); }}
+                                                                    className={`w-full text-left flex items-center gap-2 pl-6 pr-2 py-1.5 rounded-md text-[11px] transition-all group text-cyber-secondary/50 hover:bg-cyber-primary/10 hover:text-cyber-secondary`}>
+                                                                    <Plus size={11} className="flex-shrink-0 opacity-60 group-hover:opacity-100" />
+                                                                    <span className="truncate opacity-80 group-hover:opacity-100">Nueva página</span>
+                                                                </button>
+
+                                                                <div className="pl-6 text-[9px] font-bold uppercase tracking-widest opacity-40 mt-3 mb-1">Acciones</div>
+                                                                <button onClick={(e) => { e.stopPropagation(); setSelectedNote(null); setIsCreatingNote(false); }}
+                                                                    className={`w-full text-left flex items-center gap-2 pl-6 pr-2 py-1.5 rounded-md text-[11px] transition-all group text-cyber-secondary/60 hover:bg-cyber-primary/10 hover:text-cyber-secondary`}>
+                                                                    <CheckSquare size={11} className="flex-shrink-0 opacity-60 group-hover:opacity-100" />
+                                                                    <span className="truncate opacity-80 group-hover:opacity-100">Ver tareas / ajustes</span>
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
                                 );
                             })}
                         </div>
@@ -924,7 +1065,7 @@ export default function CommunityView() {
                     </div>
                 ) : (
                     <CommunityPanel key={selected.id} community={selected} currentUserId={user?.id} theme={theme}
-                        onUpdate={() => fetchAll(true)} onCreateProject={(id) => setModalProject(id)} onClose={() => setSelected(null)} />
+                        onUpdate={() => fetchAll(true)} onCreateProject={(id) => setModalProject(id)} onClose={() => setSelected(null)} selectedProject={selectedProject} setSelectedProject={setSelectedProject} selectedNote={selectedNote} setSelectedNote={setSelectedNote} isCreatingNote={isCreatingNote} setIsCreatingNote={setIsCreatingNote} />
                 )}
             </main>
         </div>
