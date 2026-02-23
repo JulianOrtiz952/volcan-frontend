@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-    Plus, Search, FileText, Trash2, Tag, ArrowLeft
+    Plus, Search, FileText, Trash2, Tag, ArrowLeft, X
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { api } from '../services/api';
@@ -56,6 +56,24 @@ export default function NotesView() {
     const [filterType, setFilterType] = useState('Todos');
     const [selectedNote, setSelectedNote] = useState(null);
     const [isCreatingNote, setIsCreatingNote] = useState(false);
+    const [customTypes, setCustomTypes] = useState(() => {
+        try {
+            const saved = localStorage.getItem('notes_custom_types');
+            return saved ? JSON.parse(saved) : [];
+        } catch (e) { return []; }
+    });
+    const [showTypeModal, setShowTypeModal] = useState(false);
+    const [newTypeValue, setNewTypeValue] = useState('');
+
+    useEffect(() => {
+        localStorage.setItem('notes_custom_types', JSON.stringify(customTypes));
+    }, [customTypes]);
+
+    const allTypes = Array.from(new Set([
+        ...NOTE_TYPES,
+        ...notes.map(n => n.note_type),
+        ...customTypes
+    ])).filter(Boolean);
 
     const [formTitle, setFormTitle] = useState('');
     const [formContent, setFormContent] = useState('');
@@ -274,7 +292,7 @@ export default function NotesView() {
 
                 {/* Type filters */}
                 <div className={`flex gap-1 px-3 py-2 flex-wrap border-b ${divider}`}>
-                    {['Todos', ...NOTE_TYPES].map(t => (
+                    {['Todos', ...allTypes].map(t => (
                         <button key={t} onClick={() => setFilterType(t)}
                             className={`px-2 py-0.5 text-xs font-medium rounded-full transition-all
                                 ${filterType === t ? filterActive : filterInactive}`}>{t}</button>
@@ -354,14 +372,20 @@ export default function NotesView() {
                             <div className="flex items-center gap-3">
                                 <div className="flex items-center gap-1.5 flex-wrap">
                                     <Tag size={12} className={muted} />
-                                    {NOTE_TYPES.map(t => {
-                                        const tc = NOTE_TYPE_COLORS[t];
+                                    {allTypes.map(t => {
+                                        const tc = NOTE_TYPE_COLORS[t] || NOTE_TYPE_COLORS['Otro'];
                                         return (
                                             <button key={t} onClick={() => setFormType(t)}
                                                 className={`px-2 py-0.5 text-xs rounded-full border font-medium transition-all
                                                     ${formType === t ? t4(theme, tc) : tagInactive}`}>{t}</button>
                                         );
                                     })}
+                                    <button onClick={() => {
+                                        setNewTypeValue('');
+                                        setShowTypeModal(true);
+                                    }} className={`px-2 py-0.5 text-xs rounded-full border font-medium transition-all ${tagInactive} hover:border-current`}>
+                                        + Nueva
+                                    </button>
                                 </div>
                                 {selectedNote && (
                                     <>
@@ -400,6 +424,50 @@ export default function NotesView() {
                     </div>
                 )}
             </main>
+
+            {/* Modal para nueva categoría */}
+            {showTypeModal && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+                    onClick={e => e.target === e.currentTarget && setShowTypeModal(false)}>
+                    <div className={`w-full max-w-sm rounded-xl shadow-2xl overflow-hidden ${panelBg} border ${divider}`}>
+                        <div className={`flex items-center justify-between px-6 py-4 border-b ${divider}`}>
+                            <h2 className={`text-base font-semibold ${text}`}>Nueva categoría</h2>
+                            <button onClick={() => setShowTypeModal(false)} className={`p-1 rounded ${plusBtnCls}`}>
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <div className="px-6 py-5">
+                            <label className={`block text-xs font-medium uppercase tracking-wider mb-2 ${subtle}`}>Nombre de la categoría</label>
+                            <input autoFocus value={newTypeValue} onChange={e => setNewTypeValue(e.target.value)}
+                                onKeyDown={e => {
+                                    if (e.key === 'Enter' && newTypeValue.trim()) {
+                                        const t = newTypeValue.trim().substring(0, 30);
+                                        if (!customTypes.includes(t)) setCustomTypes(prev => [...prev, t]);
+                                        setFormType(t);
+                                        setShowTypeModal(false);
+                                        setNewTypeValue('');
+                                    }
+                                }}
+                                placeholder="Ej. Personal, Universidad..."
+                                className={`w-full px-3 py-2 text-sm rounded-lg ${inputCls}`} />
+                        </div>
+                        <div className={`flex gap-2 justify-end px-6 py-4 border-t ${divider}`}>
+                            <button onClick={() => setShowTypeModal(false)} className={`px-4 py-2 text-sm rounded-lg ${btnSecondary}`}>Cancelar</button>
+                            <button onClick={() => {
+                                if (newTypeValue.trim()) {
+                                    const t = newTypeValue.trim().substring(0, 30);
+                                    if (!customTypes.includes(t)) setCustomTypes(prev => [...prev, t]);
+                                    setFormType(t);
+                                    setShowTypeModal(false);
+                                    setNewTypeValue('');
+                                }
+                            }} disabled={!newTypeValue.trim()} className={`px-4 py-2 text-sm rounded-lg ${btnPrimary} disabled:opacity-40`}>
+                                Crear
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
