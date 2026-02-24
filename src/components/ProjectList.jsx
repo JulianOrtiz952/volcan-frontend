@@ -63,7 +63,7 @@ const SubtaskItem = ({ subtask, onToggle, onUpdate, onDelete, theme }) => {
                         onKeyDown={e => e.key === 'Enter' && handleUpdate()}
                         onClick={e => e.stopPropagation()}
                         className={`bg-transparent border-b border-current outline-none w-full mr-2
-                            ${theme === 'cyberpunk' ? 'text-white' : 'text-black'}
+                            ${t4(theme, { cyber: 'text-white', paper: 'text-black', dark: 'text-dark-text', sakura: 'text-sakura-ink' })}
                         `}
                     />
                 ) : (
@@ -173,7 +173,7 @@ const TaskItem = ({ task, onUpdate, onToggleTask, onToggleSubtask, onDeleteTask,
                                 onKeyDown={e => e.key === 'Enter' && handleUpdateTask()}
                                 onClick={e => e.stopPropagation()}
                                 className={`font-bold text-lg bg-transparent border-b border-current outline-none w-full
-                                    ${theme === 'cyberpunk' ? 'text-white' : 'text-black'}
+                                    ${t4(theme, { cyber: 'text-white', paper: 'text-black', dark: 'text-dark-text', sakura: 'text-sakura-ink' })}
                                 `}
                             />
                         ) : (
