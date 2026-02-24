@@ -107,6 +107,7 @@ const SettingsPage = () => {
     const [displayName, setDisplayName] = useState('');
     const [oldPassword, setOldPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [message, setMessage] = useState({ text: '', type: '' });
     const [updating, setUpdating] = useState(false);
 
@@ -154,6 +155,12 @@ const SettingsPage = () => {
 
     const handleChangePassword = async (e) => {
         e.preventDefault();
+
+        if (newPassword !== confirmPassword) {
+            showMsg('Las contraseñas nuevas no coinciden.', 'error');
+            return;
+        }
+
         try {
             const res = await fetch(`${API_URL}/change-password/`, {
                 method: 'PATCH',
@@ -162,12 +169,14 @@ const SettingsPage = () => {
             });
             if (res.ok) {
                 showMsg('¡Contraseña cambiada!', 'success');
-                setOldPassword(''); setNewPassword('');
+                setOldPassword(''); setNewPassword(''); setConfirmPassword('');
             } else {
                 const err = await res.json();
                 showMsg(err.old_password?.[0] || 'Error al cambiar.', 'error');
             }
-        } catch { showMsg('Error de conexión.', 'error'); }
+        } catch {
+            showMsg('Error de conexión.', 'error');
+        }
     };
 
     if (loading && !user) return <div className="p-8 text-center">Cargando...</div>;
@@ -219,12 +228,17 @@ const SettingsPage = () => {
                     <form onSubmit={handleChangePassword} className="space-y-4">
                         <div>
                             <label className={labelClass}>Contraseña actual</label>
-                            <input type="password" value={oldPassword} onChange={e => setOldPassword(e.target.value)}
+                            <input type="password" value={oldPassword} onChange={e => setOldPassword(e.target.value)} required
                                 className={inputClass} placeholder="••••••••" />
                         </div>
                         <div>
                             <label className={labelClass}>Nueva contraseña</label>
-                            <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)}
+                            <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required
+                                className={inputClass} placeholder="••••••••" />
+                        </div>
+                        <div>
+                            <label className={labelClass}>Confirmar nueva contraseña</label>
+                            <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required
                                 className={inputClass} placeholder="••••••••" />
                         </div>
                         <button type="submit"
