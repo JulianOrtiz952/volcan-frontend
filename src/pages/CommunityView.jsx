@@ -156,12 +156,16 @@ const useStyles = (theme) => ({
     contentTitle: t4(theme, { cyberpunk: 'text-cyber-primary placeholder-cyber-primary/20', paper: 'text-neutral-900 placeholder-neutral-200', dark: 'text-dark-text placeholder-dark-muted', sakura: 'text-sakura-ink placeholder-sakura-muted' }),
     contentBody: t4(theme, { cyberpunk: 'text-cyber-secondary/90 placeholder-cyber-secondary/20', paper: 'text-neutral-700 placeholder-neutral-300', dark: 'text-dark-subtle placeholder-dark-muted', sakura: 'text-sakura-ink/80 placeholder-sakura-muted' }),
     contentView: t4(theme, { cyberpunk: 'text-cyber-secondary/85', paper: 'text-neutral-700', dark: 'text-dark-subtle', sakura: 'text-sakura-ink/80' }),
+    navProjActive: t4(theme, { cyberpunk: 'text-cyber-primary bg-cyber-primary/10 font-medium', paper: 'text-neutral-900 bg-neutral-100 font-medium', dark: 'text-dark-text bg-dark-primary/15 font-medium', sakura: 'text-sakura-ink bg-sakura-blossom/30 font-medium' }),
+    navProjDefault: t4(theme, { cyberpunk: 'text-cyber-secondary/70 hover:text-cyber-secondary hover:bg-cyber-primary/5', paper: 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-50', dark: 'text-dark-muted hover:text-dark-text hover:bg-dark-elevated', sakura: 'text-sakura-muted hover:text-sakura-ink hover:bg-sakura-petal/20' }),
+    navLine: t4(theme, { cyberpunk: 'before:bg-cyber-primary/20', paper: 'before:bg-neutral-200', dark: 'before:bg-dark-border', sakura: 'before:bg-sakura-blossom/30' }),
+    navLabel: t4(theme, { cyberpunk: 'text-cyber-secondary/40', paper: 'text-neutral-400', dark: 'text-dark-muted', sakura: 'text-sakura-muted' }),
 });
 
 // ── Modal ─────────────────────────────────────────────────────────────────────
 const Modal = ({ title, onClose, onSave, theme, primaryText = 'Crear', fields }) => {
     const s = useStyles(theme);
-    const [values, setValues] = useState(fields.reduce((a, f) => ({ ...a, [f.key]: '' }), {}));
+    const [values, setValues] = useState(fields.reduce((a, f) => ({ ...a, [f.key]: f.initialValue || '' }), {}));
     const isValid = fields.filter(f => f.required).every(f => values[f.key].trim());
 
     const modalBg = t4(theme, {
@@ -213,9 +217,23 @@ const Modal = ({ title, onClose, onSave, theme, primaryText = 'Crear', fields })
 };
 
 // ── Project Detail ────────────────────────────────────────────────────────────
-const ProjectDetail = ({ project, theme, onUpdate, onClose, selectedNote, setSelectedNote, isCreatingNote, setIsCreatingNote }) => {
+const ProjectDetail = ({ project, theme, onUpdate, onClose, selectedNote, setSelectedNote, isCreatingNote, setIsCreatingNote, currentUserId, communityOwner }) => {
     const s = useStyles(theme);
     const [tab, setTab] = useState((selectedNote || isCreatingNote) ? 'notes' : 'tasks');
+
+    const canEditDelete = currentUserId === project.created_by || currentUserId === communityOwner;
+    const [isEditingProj, setIsEditingProj] = useState(false);
+    const [isDeletingProj, setIsDeletingProj] = useState(false);
+
+    const updateProject = async (vals) => {
+        try { await api.patch(`/shared-projects/${project.id}/`, vals); setIsEditingProj(false); onUpdate(true); }
+        catch (e) { console.error(e); }
+    };
+
+    const deleteProject = async () => {
+        try { await api.delete(`/shared-projects/${project.id}/`); setIsDeletingProj(false); onClose(); onUpdate(true); }
+        catch (e) { console.error(e); }
+    };
 
     const [newTask, setNewTask] = useState('');
     const [savingTask, setSavingTask] = useState(false);
@@ -394,15 +412,50 @@ const ProjectDetail = ({ project, theme, onUpdate, onClose, selectedNote, setSel
                     </div>
 
                     {/* Page header (Notion style) */}
-                    <div className="px-6 md:px-16 pt-8 md:pt-12 pb-6">
-                        <div className="flex items-center gap-3 mb-2">
-                            <FolderOpen size={36} className={s.titleIcon} />
+                    <div className="px-6 md:px-16 pt-8 md:pt-12 pb-6 relative group">
+                        <div className="flex flex-col mb-2">
+                            <FolderOpen size={36} className={`mb-2 ${s.titleIcon}`} />
+                            <h1 className={`text-4xl font-bold tracking-tight mb-2 ${s.titleCls}`}>
+                                {project.name}
+                            </h1>
+                            {project.description && (
+                                <p className={`text-base mt-1 ${s.muted}`}>{project.description}</p>
+                            )}
                         </div>
-                        <h1 className={`text-4xl font-bold tracking-tight mb-2 ${s.titleCls}`}>
-                            {project.name}
-                        </h1>
-                        {project.description && (
-                            <p className={`text-base mt-1 ${s.muted}`}>{project.description}</p>
+
+                        {canEditDelete && (
+                            <div className="absolute top-8 right-6 md:right-16 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onClick={() => setIsEditingProj(true)} className={`p-1.5 rounded-lg ${s.btnSecondary}`} title="Editar proyecto">
+                                    <Edit3 size={15} />
+                                </button>
+                                <button onClick={() => setIsDeletingProj(true)} className={`p-1.5 rounded-lg border border-red-500/20 text-red-500 hover:bg-red-500/10 hover:border-red-500/40`} title="Eliminar proyecto">
+                                    <Trash2 size={15} />
+                                </button>
+                            </div>
+                        )}
+
+                        {isEditingProj && (
+                            <Modal theme={theme} title="Editar proyecto" primaryText="Guardar" onClose={() => setIsEditingProj(false)} onSave={updateProject}
+                                fields={[
+                                    { key: 'name', label: 'Nombre del proyecto', placeholder: 'Proyecto increíble...', required: true, autoFocus: true, initialValue: project.name },
+                                    { key: 'description', label: 'Descripción', placeholder: '¿En qué consiste?', multiline: true, initialValue: project.description || '' },
+                                ]} />
+                        )}
+
+                        {isDeletingProj && (
+                            <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+                                <div className={`w-full max-w-sm rounded-xl shadow-2xl overflow-hidden ${s.cardBg}`}>
+                                    <div className="px-6 py-5 text-center">
+                                        <Trash2 size={40} className={`mx-auto mb-4 text-red-500`} />
+                                        <h3 className={`text-lg font-bold mb-2 ${s.text}`}>¿Eliminar proyecto?</h3>
+                                        <p className={`text-sm mb-6 ${s.muted}`}>Esta acción es irreversible y eliminará el proyecto y sus notas de la comunidad.</p>
+                                        <div className="flex gap-3">
+                                            <button onClick={() => setIsDeletingProj(false)} className={`flex-1 py-2 rounded-lg ${s.btnSecondary}`}>Cancelar</button>
+                                            <button onClick={deleteProject} className={`flex-1 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 font-medium`}>Sí, eliminar</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         )}
                         <div className={`flex items-center gap-6 mt-4 text-sm ${s.muted}`}>
                             <span>Creado por <span className="font-medium">{project.created_by_name}</span></span>
@@ -755,6 +808,7 @@ const CommunityPanel = ({ community, currentUserId, theme, onUpdate, onCreatePro
         }
         if (projectData) {
             return <ProjectDetail key={projectData.id} project={projectData} theme={theme}
+                currentUserId={currentUserId} communityOwner={community.owner}
                 onUpdate={handleUpdate} onClose={() => { setSelectedProject(null); setProjectData(null); setSelectedNote(null); setIsCreatingNote(false); }} selectedNote={selectedNote} setSelectedNote={setSelectedNote} isCreatingNote={isCreatingNote} setIsCreatingNote={setIsCreatingNote} />;
         }
     }
@@ -1002,29 +1056,29 @@ export default function CommunityView() {
 
                                                         <button
                                                             onClick={() => { setSelectedProject(p); setSelectedNote(null); setIsCreatingNote(false); }}
-                                                            className={`w-full text-left flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors hover:text-white ${selectedProject?.id === p.id ? 'text-white font-medium bg-white/5' : s.muted}`}>
-                                                            <FolderOpen size={13} className={selectedProject?.id === p.id ? 'text-cyber-primary' : 'opacity-70'} />
+                                                            className={`w-full text-left flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors ${selectedProject?.id === p.id ? s.navProjActive : s.navProjDefault}`}>
+                                                            <FolderOpen size={13} className={selectedProject?.id === p.id ? s.iconAccent : s.iconMuted} />
                                                             <span className="truncate">{p.name}</span>
                                                         </button>
                                                         {selectedProject?.id === p.id && (
-                                                            <div className="mt-1.5 flex flex-col gap-0.5 relative before:absolute before:left-[10px] before:top-0 before:bottom-3 before:w-px before:bg-white/10">
-                                                                <div className="pl-6 text-[9px] font-bold uppercase tracking-widest opacity-40 mb-1">Páginas</div>
+                                                            <div className={`mt-1.5 flex flex-col gap-0.5 relative before:absolute before:left-[10px] before:top-0 before:bottom-3 before:w-px ${s.navLine}`}>
+                                                                <div className={`pl-6 text-[9px] font-bold uppercase tracking-widest mb-1 ${s.navLabel}`}>Páginas</div>
                                                                 {(p.shared_notes || []).map(note => (
                                                                     <button key={note.id} onClick={(e) => { e.stopPropagation(); setSelectedNote(note); setIsCreatingNote(false); setTimeout(() => document.querySelector('.tiptap-wrapper')?.scrollIntoView({ behavior: 'smooth' }), 50); }}
-                                                                        className={`w-full text-left flex items-center gap-2 pl-6 pr-2 py-1.5 rounded-md text-[11px] font-medium transition-all group ${selectedNote?.id === note.id ? 'bg-cyber-primary text-black' : 'text-cyber-secondary/70 hover:bg-cyber-primary/10 hover:text-cyber-secondary'}`}>
+                                                                        className={`w-full text-left flex items-center gap-2 pl-6 pr-2 py-1.5 rounded-md text-[11px] font-medium transition-all group ${selectedNote?.id === note.id ? s.noteItemActive : s.noteItemDefault}`}>
                                                                         <FileText size={11} className={`flex-shrink-0 ${selectedNote?.id === note.id ? 'opacity-100' : 'opacity-60'}`} />
                                                                         <span className="truncate">{note.title}</span>
                                                                     </button>
                                                                 ))}
                                                                 <button onClick={(e) => { e.stopPropagation(); setSelectedNote(null); setIsCreatingNote(true); }}
-                                                                    className={`w-full text-left flex items-center gap-2 pl-6 pr-2 py-1.5 rounded-md text-[11px] transition-all group text-cyber-secondary/50 hover:bg-cyber-primary/10 hover:text-cyber-secondary`}>
+                                                                    className={`w-full text-left flex items-center gap-2 pl-6 pr-2 py-1.5 rounded-md text-[11px] transition-all group ${s.noteItemDefault}`}>
                                                                     <Plus size={11} className="flex-shrink-0 opacity-60 group-hover:opacity-100" />
                                                                     <span className="truncate opacity-80 group-hover:opacity-100">Nueva página</span>
                                                                 </button>
 
-                                                                <div className="pl-6 text-[9px] font-bold uppercase tracking-widest opacity-40 mt-3 mb-1">Acciones</div>
+                                                                <div className={`pl-6 text-[9px] font-bold uppercase tracking-widest mt-3 mb-1 ${s.navLabel}`}>Acciones</div>
                                                                 <button onClick={(e) => { e.stopPropagation(); setSelectedNote(null); setIsCreatingNote(false); }}
-                                                                    className={`w-full text-left flex items-center gap-2 pl-6 pr-2 py-1.5 rounded-md text-[11px] transition-all group text-cyber-secondary/60 hover:bg-cyber-primary/10 hover:text-cyber-secondary`}>
+                                                                    className={`w-full text-left flex items-center gap-2 pl-6 pr-2 py-1.5 rounded-md text-[11px] transition-all group ${s.noteItemDefault}`}>
                                                                     <CheckSquare size={11} className="flex-shrink-0 opacity-60 group-hover:opacity-100" />
                                                                     <span className="truncate opacity-80 group-hover:opacity-100">Ver tareas / ajustes</span>
                                                                 </button>
